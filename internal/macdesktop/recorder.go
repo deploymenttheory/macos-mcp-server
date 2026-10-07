@@ -84,13 +84,8 @@ func startRecorder(opts RecorderOptions) (*recorder, error) {
 		return nil, fmt.Errorf("%w: %w", ErrRecorderStart, err)
 	}
 	// -v video, -x no sound, -k show clicks. The recording runs until SIGINT.
-	cmd := exec.Command(
-		exe,
-		"-v",
-		"-x",
-		"-k",
-		video,
-	) //nolint:gosec,noctx // argv-only; outlives any request context by design
+	argv := []string{"-v", "-x", "-k", video}
+	cmd := exec.Command(exe, argv...) //nolint:gosec,noctx // argv-only; outlives any request context
 	cmd.Env = clirunner.Environment()
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrRecorderStart, err)

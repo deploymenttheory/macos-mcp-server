@@ -21,7 +21,7 @@ func nsDictionaryNumber(dict obj.Object, key string) int64 {
 	if v == 0 {
 		return 0
 	}
-	return int64(
-		v.Send(objc.RegisterName("longLongValue")),
-	) //nolint:gosec // the selector returns a long long in the register
+	r := v.Send(objc.RegisterName("longLongValue"))
+	ll := int64(r) //nolint:gosec // the selector returns a long long in the register
+	return ll
 }

@@ -54,6 +54,12 @@ func AllTools() []inventory.ServerTool {
 		// web toolset
 		Scrape(),
 
+		// packages toolset (opt-in; no persona carries it)
+		Package(),
+
+		// credentials toolset (opt-in; enabled by --credentials-file)
+		Credentials(),
+
 		// diagnostics toolset (1st-line support)
 		SystemInfo(),
 		Service(),

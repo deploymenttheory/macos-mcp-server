@@ -139,8 +139,31 @@ func RunStdio(ctx context.Context, cfg Config) error {
 		logger.Warn("unrecognized toolset requested", "toolset", unknown)
 	}
 
+	// The device policy is read here for its credentials section; the rest of
+	// the guardrail stack (enforcement, audit chain, kill switch) is wired in
+	// milestone 5.
+	reg := runtime.NewGuardrailRegistry(envNames, logger)
+	devicePolicy, err := runtime.LoadPolicy(cfg.PolicyConfig, reg, logger)
+	if err != nil {
+		return fmt.Errorf("policy: %w", err)
+	}
+	if err := refuseCredentialExposure(cfg, inv, devicePolicy, logger); err != nil {
+		return err
+	}
+
+	// Provisioned only after admission and the exposure check, so a denied
+	// startup never installs credentials, and removed again on every shutdown
+	// path.
+	installedCreds, cleanupCreds, err := provisionCredentials(dsk, cfg, nil, logger)
+	if err != nil {
+		return err
+	}
+	defer cleanupCreds()
+
 	deps := macos.NewBaseDeps(dsk, logger, nil)
+	deps.WithCredentials(credentialInfos(installedCreds))
 	deps.WithEnforceHTTPS(cfg.EnforceHTTPS)
+	deps.WithProtectedPaths(guardrailPaths(cfg, devicePolicy))
 
 	s := newSurface(cfg, inv, personaInstructions, deps)
 	s.InstallReceiving()
