@@ -1,0 +1,199 @@
+//go:build darwin && (amd64 || arm64)
+
+package macdesktop
+
+import (
+	"errors"
+	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
+)
+
+// Selector resolution is where a journey's determinism lives: it is the point at
+// which a document's intent meets a screen that is never quite the same twice.
+//
+// The rules are docs/journey-taxonomy.md §4.2, identical to the Windows
+// server's: matching never falls back from an exact name to a substring, and
+// more than one match is an error naming the count, not a silent pick of
+// index 0.
+
+// Selector matching and occurrence modes, matching the journey vocabulary.
+const (
+	MatchExact    = "exact"
+	MatchContains = "contains"
+	MatchMatches  = "matches"
+
+	OccurrenceUnique = "unique"
+	OccurrenceFirst  = "first"
+)
+
+// Errors a selector can produce.
+var (
+	ErrNoMatch            = errors.New("no element matched")
+	ErrAmbiguousSelector  = errors.New("the selector matches more than one element")
+	ErrOccurrenceOutOfRan = errors.New("the occurrence index is past the last match")
+	ErrBadOccurrence      = errors.New(`occurrence must be "unique", "first", or a 0-based index`)
+	ErrBadNameMatch       = errors.New(`name_match must be "exact", "contains" or "matches"`)
+	// ErrLabelNotFound reports a label that is not in the current snapshot, which
+	// normally means the tree has been rebuilt since it was issued.
+	ErrLabelNotFound = errors.New("label not found in the last Snapshot; take a fresh Snapshot first")
+)
+
+// SelectorSpec identifies a UI element. Exactly one of AutomationID or Name
+// identifies it; ControlType may narrow either.
+type SelectorSpec struct {
+	AutomationID string
+	Name         string
+	ControlType  string
+	// NameMatch qualifies Name. Empty means MatchExact.
+	NameMatch string
+	// Occurrence is "unique" (default), "first", or a 0-based index.
+	Occurrence string
+}
+
+// Empty reports whether the spec identifies nothing.
+func (s SelectorSpec) Empty() bool {
+	return s.AutomationID == "" && s.Name == ""
+}
+
+// Describe renders the spec for an error message.
+func (s SelectorSpec) Describe() string {
+	var parts []string
+	if s.AutomationID != "" {
+		parts = append(parts, "automation_id="+strconv.Quote(s.AutomationID))
+	}
+	if s.Name != "" {
+		parts = append(parts, "name="+strconv.Quote(s.Name))
+	}
+	if s.ControlType != "" {
+		parts = append(parts, "control_type="+s.ControlType)
+	}
+	if s.NameMatch != "" && s.NameMatch != MatchExact {
+		parts = append(parts, "name_match="+s.NameMatch)
+	}
+	return strings.Join(parts, " ")
+}
+
+// Matches returns every interactive element in the most recent snapshot that the
+// spec matches, in tree order.
+func (d *Desktop) Matches(spec SelectorSpec) ([]LabeledElement, error) {
+	pred, err := spec.predicate()
+	if err != nil {
+		return nil, err
+	}
+	d.stateMu.Lock()
+	defer d.stateMu.Unlock()
+	return matchState(d.lastState, pred), nil
+}
+
+func matchState(state *DesktopState, pred func(*LabeledElement) bool) []LabeledElement {
+	if state == nil {
+		return nil
+	}
+	var out []LabeledElement
+	for i := range state.Interactive {
+		if e := &state.Interactive[i]; pred(e) {
+			out = append(out, *e)
+		}
+	}
+	return out
+}
+
+// Resolve returns the label the spec designates, and how many elements it
+// matched. The count is returned even on failure, so a caller can report that a
+// selector was ambiguous rather than merely unsatisfied.
+func (d *Desktop) Resolve(spec SelectorSpec) (label, candidates int, err error) {
+	found, err := d.Matches(spec)
+	if err != nil {
+		return 0, 0, err
+	}
+	return resolveAmong(spec, found)
+}
+
+// resolveAmong applies the occurrence rule to the matches.
+func resolveAmong(spec SelectorSpec, found []LabeledElement) (label, candidates int, err error) {
+	n := len(found)
+	if n == 0 {
+		return 0, 0, fmt.Errorf("%w for %s; take a fresh Snapshot and check the name",
+			ErrNoMatch, spec.Describe())
+	}
+	switch occ := spec.Occurrence; occ {
+	case "", OccurrenceUnique:
+		if n > 1 {
+			return 0, n, fmt.Errorf("%w: %s matches %d elements (%s). Narrow it with "+
+				"control_type, or choose one with occurrence",
+				ErrAmbiguousSelector, spec.Describe(), n, describeCandidates(found))
+		}
+		return found[0].Label, 1, nil
+	case OccurrenceFirst:
+		return found[0].Label, n, nil
+	default:
+		idx, convErr := strconv.Atoi(occ)
+		if convErr != nil || idx < 0 {
+			return 0, n, fmt.Errorf("%w: got %q", ErrBadOccurrence, occ)
+		}
+		if idx >= n {
+			return 0, n, fmt.Errorf("%w: %s matches %d element(s), so index %d does not exist",
+				ErrOccurrenceOutOfRan, spec.Describe(), n, idx)
+		}
+		return found[idx].Label, n, nil
+	}
+}
+
+// predicate compiles the spec into a match test, so the pattern is compiled once
+// rather than per element.
+func (s SelectorSpec) predicate() (func(*LabeledElement) bool, error) {
+	typeOK := func(e *LabeledElement) bool {
+		return s.ControlType == "" || strings.EqualFold(e.Info.ControlType, s.ControlType)
+	}
+	if s.AutomationID != "" {
+		return func(e *LabeledElement) bool {
+			return typeOK(e) && e.Info.AutomationID == s.AutomationID
+		}, nil
+	}
+	needle := strings.TrimSpace(s.Name)
+	if needle == "" {
+		return func(*LabeledElement) bool { return false }, nil
+	}
+	switch s.NameMatch {
+	case "", MatchExact:
+		return func(e *LabeledElement) bool {
+			return typeOK(e) && strings.EqualFold(strings.TrimSpace(e.Info.Name), needle)
+		}, nil
+	case MatchContains:
+		lower := strings.ToLower(needle)
+		return func(e *LabeledElement) bool {
+			return typeOK(e) && strings.Contains(strings.ToLower(e.Info.Name), lower)
+		}, nil
+	case MatchMatches:
+		re, err := regexp.Compile(needle)
+		if err != nil {
+			return nil, fmt.Errorf("selector name pattern %q does not compile: %w", needle, err)
+		}
+		return func(e *LabeledElement) bool {
+			return typeOK(e) && re.MatchString(e.Info.Name)
+		}, nil
+	default:
+		return nil, fmt.Errorf("%w: got %q", ErrBadNameMatch, s.NameMatch)
+	}
+}
+
+// describeCandidates lists what an ambiguous selector matched, so the failure
+// tells an author how to disambiguate rather than only that they must.
+func describeCandidates(found []LabeledElement) string {
+	const max = 5
+	parts := make([]string, 0, max)
+	for i, e := range found {
+		if i == max {
+			parts = append(parts, fmt.Sprintf("and %d more", len(found)-max))
+			break
+		}
+		label := e.Info.Name
+		if e.Info.AutomationID != "" {
+			label = e.Info.AutomationID + " / " + label
+		}
+		parts = append(parts, fmt.Sprintf("[%d] %s %s", e.Label, e.Info.ControlType, strconv.Quote(label)))
+	}
+	return strings.Join(parts, ", ")
+}
