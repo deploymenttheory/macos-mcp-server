@@ -1,0 +1,16 @@
+{
+  "policy": "../enterprise.json",
+  "device": { "bitlocker": "fail" },
+  "cases": [
+    {
+      "name": "a shell on a device without FileVault is denied",
+      "call": { "tool": "Shell", "toolset": "shell", "annotations": { "destructive": true } },
+      "expect": { "severity": "deny", "failed_signals": ["bitlocker"], "rules": ["hardware-posture-for-destructive-tools", "encrypted-volume-for-shell"] }
+    },
+    {
+      "name": "a snapshot does not require FileVault",
+      "call": { "tool": "Snapshot", "toolset": "screen", "annotations": { "read_only": true } },
+      "expect": { "severity": "allow" }
+    }
+  ]
+}

@@ -14,6 +14,7 @@ import (
 	"github.com/deploymenttheory/go-bindings-macosplatform/bindings/frameworks/coregraphics"
 	"github.com/deploymenttheory/go-bindings-macosplatform/bindings/frameworks/hiservices"
 	"github.com/deploymenttheory/macos-mcp-server/internal/clirunner"
+	"github.com/deploymenttheory/macos-mcp-server/internal/macdesktop"
 )
 
 // Permissions is what the `permissions check` subcommand reports: every grant
@@ -232,4 +233,18 @@ func (p Permissions) Describe() string {
 		fmt.Fprintf(&b, "  ! %s\n", w)
 	}
 	return b.String()
+}
+
+// consoleSessionID is the CoreGraphics session id of the console session, or
+// 0 when there is none or the dictionary does not carry one.
+func consoleSessionID() uint32 {
+	dict := coregraphics.CGSessionCopyCurrentDictionary()
+	if dict == nil {
+		return 0
+	}
+	id := macdesktop.NSDictionaryNumber(dict, "kCGSSessionIDKey")
+	if id < 0 || id > int64(^uint32(0)) {
+		return 0
+	}
+	return uint32(id)
 }

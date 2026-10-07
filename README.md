@@ -7,11 +7,11 @@ It is the macOS counterpart of
 the same tools, toolsets, personas, policy documents and journeys, on the
 accessibility tree instead of UI Automation.
 
-> **Status:** under construction toward v1.0.0 — feature parity with
-> windows-mcp-server. The milestone table is in `CLAUDE.md`'s companion plan;
-> this README grows with each milestone. **Requires macOS 27 or later.**
+> **Status:** feature-complete against windows-mcp-server (35 tools, the
+> guardrail stack, journeys, credentials); conformance evidence and the signed
+> release pipeline land with v1.0.0. **Requires macOS 27 or later.**
 
-## What it will do
+## What it does
 
 | Toolset | Tools |
 |---|---|
@@ -42,6 +42,27 @@ make sign-dev                       # a stable local signing identity, so grants
 ```
 
 See `docs/permissions.md` once it lands for the per-tool matrix.
+
+## Guardrails
+
+Every session runs under a policy document — audit-only by default, never
+refusing — with a hash-chained audit log, rug-pull detection, an out-of-band
+kill switch, an optional egress proxy enforced through pf, and evidence
+bundles. `--policy-config` is the only security flag; everything else is in
+the document.
+
+```sh
+macos-mcp-server policy validate --policy-config policy/examples/secure.json
+macos-mcp-server policy check    --policy-config policy/examples/secure.json
+macos-mcp-server policy explain  --tool Shell
+macos-mcp-server policy test     policy/examples/tests/*.json
+macos-mcp-server audit verify    "/Library/Application Support/MacOSMCP/audit"
+macos-mcp-server evidence bundle --dir ... --session 20261007-120000
+```
+
+See `docs/policy-config.md` for the macOS reading of each posture signal,
+`docs/egress.md` for the pf tiers, and `docs/credentials.md` for the keychain
+model.
 
 ## Development
 

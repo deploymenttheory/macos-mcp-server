@@ -124,7 +124,14 @@ func (p *systemProbe) DomainSKU() (signals.DomainSKU, error) {
 // macOS reading of Windows' Session 0 — no graphical session to drive.
 func (p *systemProbe) RunContext() signals.RunContext {
 	rc := signals.RunContext{Elevated: os.Geteuid() == 0}
-	rc.IsSystem = rc.Elevated && !consoleSession()
+	console := consoleSession()
+	rc.IsSystem = rc.Elevated && !console
+	// The harness reads "interactive" as a non-zero session id (Windows
+	// Session 0 is the service session). The CoreGraphics session id is the
+	// macOS equivalent; a console session that reports none still counts.
+	if console {
+		rc.SessionID = max(consoleSessionID(), 1)
+	}
 	if u, err := user.Current(); err == nil {
 		rc.User = u.Username
 	}

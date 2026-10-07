@@ -1,0 +1,16 @@
+{
+  "policy": "../enterprise.json",
+  "device": {},
+  "cases": [
+    {
+      "name": "a healthy device admits a snapshot",
+      "call": { "tool": "Snapshot", "toolset": "screen", "annotations": { "read_only": true } },
+      "expect": { "severity": "allow" }
+    },
+    {
+      "name": "a healthy device admits the shell",
+      "call": { "tool": "Shell", "toolset": "shell", "annotations": { "destructive": true } },
+      "expect": { "severity": "allow" }
+    }
+  ]
+}

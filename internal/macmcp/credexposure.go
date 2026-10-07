@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/deploymenttheory/agentweave-harness/guardrails/audit"
 	"github.com/deploymenttheory/agentweave-harness/guardrails/policy"
 	"github.com/deploymenttheory/macos-mcp-server/pkg/macos"
 	"github.com/deploymenttheory/mcp-server-core/inventory"
@@ -57,6 +58,7 @@ func refuseCredentialExposure(
 	cfg Config,
 	inv *inventory.Inventory,
 	devicePolicy *policy.Policy,
+	auditLog *audit.AuditLog,
 	logger *slog.Logger,
 ) error {
 	if cfg.CredentialsFile == "" {
@@ -68,6 +70,13 @@ func refuseCredentialExposure(
 		credentialsDeclareUnmaskedTargets(cfg.CredentialsFile),
 	)
 	if len(unacked) > 0 {
+		if auditLog != nil {
+			_, _ = auditLog.Append("credentials.exposure.denied", map[string]any{
+				"credentials_file": true,
+				"exposed_toolsets": unacked,
+			})
+			_ = auditLog.Flush()
+		}
 		return fmt.Errorf("%w: the %v toolset(s) can read installed credentials back out of the "+
 			"keychain; remove them, or acknowledge the exposure in the policy document "+
 			"(credentials.acknowledge_toolset_exposure)", ErrCredentialExposureDenied, unacked)
@@ -75,6 +84,9 @@ func refuseCredentialExposure(
 	if len(acked) > 0 {
 		logger.Warn("credentials served alongside toolsets that can read them back; exposure acknowledged in policy",
 			"toolsets", acked)
+		if auditLog != nil {
+			_, _ = auditLog.Append("credentials.exposure.acknowledged", map[string]any{"exposed_toolsets": acked})
+		}
 	}
 	return nil
 }
