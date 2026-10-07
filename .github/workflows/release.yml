@@ -1,0 +1,101 @@
+# Builds, signs, notarizes and attaches the release binary when release-please
+# tags a release.
+#
+# release-please owns the version, the changelog and the GitHub release
+# itself; this only builds the artifacts and appends them. A failure here
+# leaves the release intact rather than half-made, and it can be re-run
+# without re-tagging.
+#
+# Signing and notarization are mandatory. Every secret below must be present;
+# the job fails loudly rather than falling back to an ad-hoc signature,
+# because TCC grants are keyed on the signing identity and an ad-hoc binary
+# would make every user re-grant Accessibility on every update.
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  goreleaser:
+    name: 📦 Build, sign, notarize and publish
+    runs-on: xcode-27
+    permissions:
+      contents: write  # attach the archives to the release
+      id-token: write  # keyless cosign: the signature names this workflow
+    env:
+      KEYCHAIN_PATH: ${{ github.workspace }}/.release-signing.keychain-db
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+
+      - name: Require the signing and notarization secrets
+        env:
+          P12: ${{ secrets.APPLE_DEVELOPER_ID_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_P12_PASSWORD }}
+          IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          ISSUER: ${{ secrets.APPLE_API_ISSUER_ID }}
+          KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+        run: |
+          missing=()
+          for v in P12 P12_PASSWORD IDENTITY KEY_ID ISSUER KEY_P8 TAP_TOKEN; do
+            if [ -z "${!v}" ]; then missing+=("$v"); fi
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::release secrets missing: ${missing[*]}; a release is never cut unsigned"
+            exit 1
+          fi
+
+      - name: Import the Developer ID certificate into a temporary keychain
+        env:
+          P12: ${{ secrets.APPLE_DEVELOPER_ID_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_P12_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN_PASSWORD=$(openssl rand -hex 24)
+          echo "::add-mask::$KEYCHAIN_PASSWORD"
+          CERT="$RUNNER_TEMP/developer-id.p12"
+          echo "$P12" | base64 --decode > "$CERT"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+          rm -f "$CERT"
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+      - name: Run goreleaser
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
+        with:
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+
+      - name: Remove the temporary keychain
+        if: always()
+        run: |
+          security list-keychains -d user -s login.keychain-db
+          security delete-keychain "$KEYCHAIN_PATH" || true

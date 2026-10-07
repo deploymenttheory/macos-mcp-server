@@ -56,3 +56,4 @@ golangci-lint-report.sarif
 
 # Debug symbol bundles
 *.dSYM/
+/conformance-host

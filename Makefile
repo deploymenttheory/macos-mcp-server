@@ -55,3 +55,23 @@ tidy:
 	go mod tidy; status=$$?; \
 	grep -v '^replace github.com/deploymenttheory/mcp-server-core' go.mod > .go.mod.new && mv .go.mod.new go.mod && rm .go.mod.tidy; \
 	exit $$status
+
+## conformance-host: build the loopback HTTP host for the official suite (never a release artefact)
+conformance-host:
+	go build -tags conformance -o conformance-host ./cmd/macos-mcp-server
+
+## conformance: run the three official-suite passes locally against the baselines
+conformance: conformance-host
+	.github/scripts/run-conformance-pass.sh --name product --host-bin ./conformance-host --port 3001 \
+	  --spec-version 2026-07-28 --harness-version 0.2.0-alpha.10 \
+	  --baseline conformance/baseline-product.yml --output-dir /tmp/macos-mcp-conformance/product --log-dir /tmp/macos-mcp-conformance
+	.github/scripts/run-conformance-pass.sh --name fixtures --fixtures --host-bin ./conformance-host --port 3002 \
+	  --spec-version 2026-07-28 --harness-version 0.2.0-alpha.10 \
+	  --baseline conformance/baseline-fixtures.yml --output-dir /tmp/macos-mcp-conformance/fixtures --log-dir /tmp/macos-mcp-conformance
+	.github/scripts/run-conformance-pass.sh --name backcompat --fixtures --host-bin ./conformance-host --port 3003 \
+	  --spec-version 2025-11-25 --harness-version 0.2.0-alpha.10 \
+	  --baseline conformance/baseline-backcompat.yml --output-dir /tmp/macos-mcp-conformance/backcompat --log-dir /tmp/macos-mcp-conformance
+
+## release-snapshot: an unsigned local dry run of the release packaging
+release-snapshot:
+	goreleaser release --snapshot --clean --skip=sign,notarize,publish,sbom

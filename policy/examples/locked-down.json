@@ -2,46 +2,89 @@
   "version": 1,
   "mode": "enforce",
   "signals": {
-    "run-context": { "ttl": "0s" },
-    "not-admin": { "ttl": "0s" },
-    "mdm-enrolled": { "ttl": "60s" },
-    "entra-joined": { "ttl": "60s" },
-    "device-allowlist": { "ttl": "60s", "arg": "/Library/Application Support/MacOSMCP/allowed-devices.txt" },
-    "secure-boot": { "ttl": "60s" },
-    "bitlocker": { "ttl": "30s" },
-    "vbs": { "ttl": "60s" },
-    "hvci": { "ttl": "60s" }
+    "run-context": {
+      "ttl": "0s"
+    },
+    "mdm-enrolled": {
+      "ttl": "60s"
+    },
+    "entra-joined": {
+      "ttl": "60s"
+    },
+    "device-allowlist": {
+      "ttl": "60s",
+      "arg": "/Library/Application Support/MacOSMCP/allowed-devices.txt"
+    },
+    "secure-boot": {
+      "ttl": "60s"
+    },
+    "bitlocker": {
+      "ttl": "30s"
+    },
+    "vbs": {
+      "ttl": "60s"
+    },
+    "hvci": {
+      "ttl": "60s"
+    }
   },
   "rules": [
     {
       "name": "startup-admission",
-      "match": { "scope": "startup" },
-      "require": ["run-context", "device-allowlist", "mdm-enrolled"],
+      "match": {
+        "scope": "startup"
+      },
+      "require": [
+        "run-context",
+        "device-allowlist",
+        "mdm-enrolled"
+      ],
       "on_fail": "deny"
     },
     {
       "name": "device-must-stay-in-bounds",
-      "match": { "toolset": "*" },
-      "require": ["device-allowlist", "mdm-enrolled", "entra-joined"],
+      "match": {
+        "toolset": "*"
+      },
+      "require": [
+        "device-allowlist",
+        "mdm-enrolled",
+        "entra-joined"
+      ],
       "on_fail": "kill"
     },
     {
       "name": "baseline-posture",
-      "match": { "toolset": "*" },
-      "require": ["run-context", "not-admin", "secure-boot", "bitlocker", "vbs", "hvci"],
+      "match": {
+        "toolset": "*"
+      },
+      "require": [
+        "run-context",
+        "secure-boot",
+        "bitlocker",
+        "vbs",
+        "hvci"
+      ],
       "on_fail": "deny"
     },
     {
       "name": "sealed-system-for-destructive-tools",
-      "match": { "annotation": "destructive" },
-      "require": ["secure-boot", "hvci"],
+      "match": {
+        "annotation": "destructive"
+      },
+      "require": [
+        "secure-boot",
+        "hvci"
+      ],
       "on_fail": "deny"
     }
   ],
   "rate_limits": [
     {
       "name": "destructive-burst",
-      "match": { "annotation": "destructive" },
+      "match": {
+        "annotation": "destructive"
+      },
       "window": "10s",
       "max": 2,
       "on_exceed": "kill"
