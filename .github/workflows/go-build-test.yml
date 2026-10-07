@@ -1,0 +1,96 @@
+name: go | Build & Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - '.github/workflows/go-build-test.yml'
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'policy/**'
+      - 'journeys/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: '🧪 Build & Test (macOS 27)'
+    # macOS-only by design: nearly every file carries
+    # `//go:build darwin && (amd64 || arm64)`, and the SDK the engine is built on
+    # is generated from the macOS 27 SDK. `xcode-27` is the GitHub-hosted image
+    # that runs macOS 27 (arm64 only; there is no `macos-27` label). Note
+    # step-security/harden-runner is not used here — it supports Linux runners
+    # only; the security posture is SHA-pinned actions plus minimal permissions.
+    runs-on: xcode-27
+    timeout-minutes: 25
+
+    steps:
+      - name: Check Out
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Go
+        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version-file: 'go.mod'
+          cache-dependency-path: 'go.sum'
+          cache: true
+
+      - name: Verify modules and tidiness
+        run: |
+          go mod download
+          go mod verify
+          go mod tidy -diff
+
+      # mcp-server-core and agentweave-harness are developed in lockstep with
+      # this repo, so working branches may point them at a local checkout. A
+      # replace directive that reaches main would make releases build against
+      # code no tag describes — refuse it here.
+      - name: Refuse replace directives
+        run: |
+          if grep -E '^replace ' go.mod; then
+            echo 'go.mod carries a replace directive; pin a published tag instead.' >&2
+            exit 1
+          fi
+
+      - name: Build (arm64)
+        run: go build ./...
+
+      # The (amd64 || arm64) build tag is asserted everywhere and verified
+      # nowhere else; the universal binary needs both to build.
+      - name: Build (amd64 cross-compile)
+        env:
+          GOARCH: amd64
+          CGO_ENABLED: "0"
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      # The accessibility engine tests self-skip when the environment cannot
+      # host them (hosted runners grant neither Accessibility nor Screen
+      # Recording), so this job guarantees compilation plus the pure-logic
+      # suites. -v keeps those skips visible rather than silent.
+      - name: Test
+        run: go test ./... -count=1 -v
+
+      # The conformance host must build and test, and must never be in a
+      # normal build: a released binary with an unauthenticated HTTP listener
+      # is exactly what the stdio-only posture exists to prevent.
+      - name: Conformance tag builds, and is absent from the product
+        run: |
+          go build -tags conformance ./...
+          go test -tags conformance ./internal/macmcp/ -count=1
+          if go run ./cmd/macos-mcp-server --help 2>&1 | grep -q conformance-serve; then
+            echo 'conformance-serve leaked into an untagged build' >&2
+            exit 1
+          fi
+
+      # What a hosted runner grants, for the record. Never gating: the grants
+      # are a property of the machine, not the code.
+      - name: Report TCC permissions on this runner
+        run: go run ./cmd/macos-mcp-server permissions check --json || true

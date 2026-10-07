@@ -1,17 +1,35 @@
-# Contribution
+# Contributing
 
-Thanks for considering contributing to this project! We are really glad you are reading this, because we need volunteer developers to help this project come to fruition.
+Thanks for helping build macos-mcp-server.
 
-Please note we have a code of conduct, please follow it in all your interactions with the project.
+## Before you start
 
-## Issues
+- Read `CLAUDE.md`. It is written for coding agents but it is the shortest
+  honest account of the conventions that matter here.
+- Install Go (the version in `go.mod`), `golangci-lint`, and, for release
+  work, `goreleaser`, `cosign` and `syft`.
+- The repo depends on `mcp-server-core`. Until its tag is published, create a
+  `go.work` (gitignored) pointing at a sibling checkout; `make tidy` keeps
+  `go.mod` free of `replace` directives, which CI refuses.
 
-If you find any bugs, please file an issue in the [GitHub issues][GitHubIssues] page. Please fill out the provided template with the appropriate information.
+## The loop
 
-If you are taking the time to mention a problem, even a seemingly minor one, it is greatly appreciated, and a totally valid contribution to this project. Thank you!
+```sh
+make build          # ./macos-mcp-server
+make sign-dev       # sign with a stable local identity so TCC grants persist
+make permissions    # what this Mac has granted
+make check          # vet + test + lint
+```
 
-<!-- References -->
+Engine tests need Accessibility and Screen Recording and a console session;
+they skip themselves otherwise, visibly (`go test -v`).
 
-<!-- Local -->
-[GitHubIssues]: <https://github.com/segraef/Template/issues>
-[Contributing]: CONTRIBUTING.md
+## Pull requests
+
+- Titles are conventional commits (`feat:`, `fix:`, `docs:`, `chore:` ...);
+  release-please builds the changelog from them.
+- A new tool bumps `TestExpectedToolCount` and carries honest annotations.
+- Nothing security-shaped is configured by a flag: it goes in the policy
+  document, and secrets come from the environment.
+- Don't add a `replace` to `go.mod`, a platform build tag to core, or a
+  `get` mode to the Credentials tool.

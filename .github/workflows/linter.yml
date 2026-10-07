@@ -41,6 +41,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # To report GitHub Actions status checks
           MARKDOWN_CONFIG_FILE: .markdown-lint.yml
           FILTER_REGEX_EXCLUDE: |
+            schema/.*
+            conformance/results/.*
             .*\.md$|                # Exclude all markdown files
             .*test/.*|              # Exclude all files in any test directory
             .*_test\.go$|           # Exclude Go test files (e.g., *_test.go)

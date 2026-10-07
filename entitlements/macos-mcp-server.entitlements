@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Deliberately empty. The hardened runtime needs no exception for anything
+  this server does: the accessibility, event-posting, screen-capture and
+  keychain APIs are gated by user consent (TCC), not by entitlements, and the
+  SDK reaches Apple's frameworks through dlopen of Apple-signed libraries,
+  which library validation permits. The file exists so the signing step is
+  explicit and reviewable: an entitlement added here is a change to what the
+  binary may do, and it should show up in a diff.
+-->
+<plist version="1.0">
+<dict/>
+</plist>

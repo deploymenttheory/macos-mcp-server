@@ -1,75 +1,61 @@
-# Template
+# macos-mcp-server
 
-This repository serves as a **Default Template Repository** according official [GitHub Contributing Guidelines][ProjectSetup] for healthy contributions. It brings you clean default Templates for several areas:
+An MCP server that lets AI agents perceive and drive the macOS desktop, run
+diagnostics and administration, and do it under an auditable guardrail stack.
+It is the macOS counterpart of
+[windows-mcp-server](https://github.com/deploymenttheory/windows-mcp-server):
+the same tools, toolsets, personas, policy documents and journeys, on the
+accessibility tree instead of UI Automation.
 
-- [Azure DevOps Pull Requests](.azuredevops/PULL_REQUEST_TEMPLATE.md) ([`.azuredevops\PULL_REQUEST_TEMPLATE.md`](`.azuredevops\PULL_REQUEST_TEMPLATE.md`))
-- [Azure Pipelines](.pipelines/pipeline.yml) ([`.pipelines/pipeline.yml`](`.pipelines/pipeline.yml`))
-- [GitHub Workflows](.github/workflows/)
-  - [Super Linter](.github/workflows/linter.yml) ([`.github/workflows/linter.yml`](`.github/workflows/linter.yml`))
-  - [Sample Workflows](.github/workflows/workflow.yml) ([`.github/workflows/workflow.yml`](`.github/workflows/workflow.yml`))
-- [GitHub Pull Requests](.github/PULL_REQUEST_TEMPLATE.md) ([`.github/PULL_REQUEST_TEMPLATE.md`](`.github/PULL_REQUEST_TEMPLATE.md`))
-- [GitHub Issues](.github/ISSUE_TEMPLATE/)
-  - [Feature Requests](.github/ISSUE_TEMPLATE/FEATURE_REQUEST.md) ([`.github/ISSUE_TEMPLATE/FEATURE_REQUEST.md`](`.github/ISSUE_TEMPLATE/FEATURE_REQUEST.md`))
-  - [Bug Reports](.github/ISSUE_TEMPLATE/BUG_REPORT.md) ([`.github/ISSUE_TEMPLATE/BUG_REPORT.md`](`.github/ISSUE_TEMPLATE/BUG_REPORT.md`))
-- [Codeowners](.github/CODEOWNERS) ([`.github/CODEOWNERS`](`.github/CODEOWNERS`)) _adjust usernames once cloned_
-- [Wiki and Documentation](docs/) ([`docs/`](`docs/`))
-- [gitignore](.gitignore) ([`.gitignore`](.gitignore))
-- [gitattributes](.gitattributes) ([`.gitattributes`](.gitattributes))
-- [Changelog](CHANGELOG.md) ([`CHANGELOG.md`](`CHANGELOG.md`))
-- [Code of Conduct](CODE_OF_CONDUCT.md) ([`CODE_OF_CONDUCT.md`](`CODE_OF_CONDUCT.md`))
-- [Contribution](CONTRIBUTING.md) ([`CONTRIBUTING.md`](`CONTRIBUTING.md`))
-- [License](LICENSE) ([`LICENSE`](`LICENSE`)) _adjust projectname once cloned_
-- [Readme](README.md) ([`README.md`](`README.md`))
-- [Security](SECURITY.md) ([`SECURITY.md`](`SECURITY.md`))
+> **Status:** under construction toward v1.0.0 — feature parity with
+> windows-mcp-server. The milestone table is in `CLAUDE.md`'s companion plan;
+> this README grows with each milestone. **Requires macOS 27 or later.**
 
+## What it will do
 
-## Status
+| Toolset | Tools |
+|---|---|
+| screen (default) | Snapshot, Screenshot, DisplayInventory, Recording |
+| interaction (default) | Click, Type, Invoke, GetText, Scroll, Move, Shortcut, Wait, WaitFor, MultiSelect, MultiEdit |
+| apps (default) | App |
+| system (default) | Clipboard, Process, Notification |
+| system-admin | Defaults, LaunchdJob |
+| shell | Shell, LaunchExecutable |
+| filesystem | FileSystem |
+| web | Scrape |
+| diagnostics | SystemInfo, Service, UnifiedLog, Network |
+| packages | Package |
+| credentials | Credentials |
+| testing | Assert, CaptureEvidence |
+| planning | Plan, Apply |
+| always | GuardrailStatus, Kill |
 
-[![Super Linter](<https://github.com/segraef/Template/actions/workflows/linter.yml/badge.svg>)](<https://github.com/segraef/Template/actions/workflows/linter.yml>)
+## Permissions
 
-[![Sample Workflow](<https://github.com/segraef/Template/actions/workflows/workflow.yml/badge.svg>)](<https://github.com/segraef/Template/actions/workflows/workflow.yml>)
+macOS gates desktop automation behind per-application consent. Check what
+this machine has granted, and trigger the prompts:
 
-## Creating a repository from a template
+```sh
+make sign-dev                       # a stable local signing identity, so grants survive rebuilds
+./macos-mcp-server permissions check
+./macos-mcp-server permissions request
+```
 
-You can [generate](https://github.com/segraef/Template/generate) a new repository with the same directory structure and files as an existing repository. More details can be found [here][CreateFromTemplate].
+See `docs/permissions.md` once it lands for the per-tool matrix.
 
-## Reporting Issues and Feedback
+## Development
 
-### Issues and Bugs
+```sh
+make check      # vet + test + lint
+make build      # ./macos-mcp-server
+```
 
-If you find any bugs, please file an issue in the [GitHub Issues][GitHubIssues] page. Please fill out the provided template with the appropriate information.
+The server is built on [go-bindings-macosplatform](https://github.com/deploymenttheory/go-bindings-macosplatform),
+[mcp-server-core](https://github.com/deploymenttheory/mcp-server-core),
+[agentweave-harness](https://github.com/deploymenttheory/agentweave-harness)
+and the official [go-sdk](https://github.com/modelcontextprotocol/go-sdk).
+Read `CLAUDE.md` for the conventions.
 
-If you are taking the time to mention a problem, even a seemingly minor one, it is greatly appreciated, and a totally valid contribution to this project. **Thank you!**
+## License
 
-## Feedback
-
-If there is a feature you would like to see in here, please file an issue or feature request in the [GitHub Issues][GitHubIssues] page to provide direct feedback.
-
-## Contribution
-
-If you would like to become an active contributor to this repository or project, please follow the instructions provided in [`CONTRIBUTING.md`][Contributing].
-
-## Learn More
-
-* [GitHub Documentation][GitHubDocs]
-* [Azure DevOps Documentation][AzureDevOpsDocs]
-* [Microsoft Azure Documentation][MicrosoftAzureDocs]
-
-<!-- References -->
-
-<!-- Local -->
-[ProjectSetup]: <https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions>
-[CreateFromTemplate]: <https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/creating-a-repository-from-a-template>
-[GitHubDocs]: <https://docs.github.com/>
-[AzureDevOpsDocs]: <https://docs.microsoft.com/en-us/azure/devops/?view=azure-devops>
-[GitHubIssues]: <https://github.com/segraef/Template/issues>
-[Contributing]: CONTRIBUTING.md
-
-<!-- External -->
-[Az]: <https://img.shields.io/powershellgallery/v/Az.svg?style=flat-square&label=Az>
-[AzGallery]: <https://www.powershellgallery.com/packages/Az/>
-[PowerShellCore]: <https://github.com/PowerShell/PowerShell/releases/latest>
-
-<!-- Docs -->
-[MicrosoftAzureDocs]: <https://docs.microsoft.com/en-us/azure/>
-[PowerShellDocs]: <https://docs.microsoft.com/en-us/powershell/>
+MIT — see [LICENSE](LICENSE).
