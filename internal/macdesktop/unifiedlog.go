@@ -95,7 +95,8 @@ func ParseLogNDJSON(out string, max int) []LogEntry {
 		if !strings.HasPrefix(line, "{") {
 			continue
 		}
-		var raw struct { //nolint:tagliatelle // the field names are Apple's ndjson schema
+		//nolint:tagliatelle // the field names are Apple's ndjson schema
+		var raw struct {
 			Timestamp    string `json:"timestamp"`
 			MessageType  string `json:"messageType"`
 			Subsystem    string `json:"subsystem"`

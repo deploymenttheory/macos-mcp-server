@@ -32,6 +32,7 @@ func AllResources() []inventory.ServerResource {
 		// screen
 		SnapshotResource(),
 		DisplaysResource(),
+		RecordingResource(),
 
 		// diagnostics
 		SystemInfoResource(),
@@ -139,6 +140,31 @@ func SystemInfoResource() inventory.ServerResource {
 				return nil, fmt.Errorf("read system info: %w", err)
 			}
 			return jsonResult(uriSystem, info)
+		},
+	)
+}
+
+// uriRecording exposes session-recording status.
+const uriRecording = "macos://session/recording"
+
+// RecordingResource exposes session-recording status — the read-only half of the
+// Recording tool, whose "mark" mode is a write and stays a tool.
+func RecordingResource() inventory.ServerResource {
+	return NewResourceFromHandler(
+		ToolsetScreen,
+		mcp.Resource{
+			Name:        "session-recording",
+			Title:       "Session recording status",
+			URI:         uriRecording,
+			MIMEType:    "application/json",
+			Description: "Whether the session is being recorded, and the video/marker paths and duration.",
+		},
+		func(_ context.Context, deps ToolDependencies, _ *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+			status, active := deps.Desktop().RecordingStatus()
+			if !active {
+				return jsonResult(uriRecording, map[string]any{"recording": false})
+			}
+			return jsonResult(uriRecording, status)
 		},
 	)
 }

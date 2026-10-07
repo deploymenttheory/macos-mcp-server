@@ -35,7 +35,7 @@ no CV model.
 
 ```sh
 go build ./...
-go vet ./...
+go vet -unsafeptr=false ./...   # unsafeptr: the event-tap callback pointer idiom
 go test ./... -count=1
 GOARCH=amd64 CGO_ENABLED=0 go build ./...   # the (amd64 || arm64) tag is asserted everywhere
 golangci-lint run --config=./.golangci.yml

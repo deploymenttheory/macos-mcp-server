@@ -79,6 +79,9 @@ type Desktop struct {
 	bannerMu sync.Mutex
 	banner   string
 
+	// rec is the session recorder, nil when recording is off.
+	rec *recorder
+
 	closed atomic.Bool
 }
 
@@ -100,6 +103,14 @@ func New(logger *slog.Logger, opts Options) (*Desktop, error) {
 	})
 	if err != nil {
 		return nil, err
+	}
+	if rec, err := startRecorder(opts.Record); errors.Is(err, ErrRecordingOff) {
+		// not configured
+	} else if err != nil {
+		logger.Warn("session recording disabled", "error", err)
+	} else {
+		d.rec = rec
+		logger.Info("session recording started", "video", rec.video, "markers", rec.markers)
 	}
 	if hiservices.AXIsProcessTrusted() == 0 {
 		logger.Warn("Accessibility is not granted: Snapshot, Click-by-label and synthetic input will fail " +
@@ -139,6 +150,7 @@ func (d *Desktop) Close() error {
 	if d.closed.Swap(true) {
 		return nil
 	}
+	d.FinalizeRecording()
 	d.stateMu.Lock()
 	old := d.lastState
 	d.lastState = nil

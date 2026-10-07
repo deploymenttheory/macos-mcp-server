@@ -17,6 +17,7 @@ func AllTools() []inventory.ServerTool {
 		Snapshot(),
 		Screenshot(),
 		DisplayInventory(),
+		Recording(),
 
 		// apps toolset
 		App(),
@@ -58,6 +59,14 @@ func AllTools() []inventory.ServerTool {
 		Service(),
 		UnifiedLog(),
 		Network(),
+
+		// testing toolset (QA)
+		Assert(),
+		CaptureEvidence(),
+
+		// planning toolset (propose a plan, apply it)
+		Plan(),
+		Apply(),
 	}
 }
 

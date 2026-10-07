@@ -69,7 +69,11 @@ jobs:
         run: go build ./...
 
       - name: Vet
-        run: go vet ./...
+        # unsafeptr is disabled: the journey recorder hands CGEventTapCreate a C
+        # callback pointer minted by purego.NewCallback — the legitimate,
+        # unavoidable idiom, which the checker cannot tell apart from misuse.
+        # Every other vet analyzer stays on.
+        run: go vet -unsafeptr=false ./...
 
       # The accessibility engine tests self-skip when the environment cannot
       # host them (hosted runners grant neither Accessibility nor Screen

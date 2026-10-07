@@ -18,7 +18,11 @@ build-amd64:
 	GOARCH=amd64 CGO_ENABLED=0 go build ./...
 
 vet:
-	go vet ./...
+	// unsafeptr is disabled: the journey recorder hands CGEventTapCreate a C
+	// callback pointer minted by purego.NewCallback — the legitimate, unavoidable
+	// idiom, which the checker cannot tell apart from misuse. Every other vet
+	// analyzer stays on.
+	go vet -unsafeptr=false ./...
 
 test:
 	go test ./... -count=1
