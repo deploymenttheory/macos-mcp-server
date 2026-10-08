@@ -28,7 +28,9 @@ jobs:
       contents: write  # attach the archives to the release
       id-token: write  # keyless cosign: the signature names this workflow
     env:
-      KEYCHAIN_PATH: ${{ github.workspace }}/.release-signing.keychain-db
+      # Outside the checkout: security(1) writes lock files beside the
+      # keychain, and goreleaser refuses to release from a dirty tree.
+      KEYCHAIN_PATH: ${{ runner.temp }}/release-signing.keychain-db
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
