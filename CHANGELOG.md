@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/deploymenttheory/macos-mcp-server/compare/v0.1.1...v0.1.2) (2026-10-08)
+
+
+### Bug Fixes
+
+* **release:** make the release workflow valid and rebuildable ([92866cc](https://github.com/deploymenttheory/macos-mcp-server/commit/92866ccf115ad3635da7788df8e941a9e7b3dde3))
+
 ## [0.1.1](https://github.com/deploymenttheory/macos-mcp-server/compare/v0.1.0...v0.1.1) (2026-10-08)
 
 
