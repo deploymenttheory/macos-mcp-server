@@ -32,6 +32,9 @@ func AllResources() []inventory.ServerResource {
 		// screen
 		SnapshotResource(),
 		DisplaysResource(),
+
+		// diagnostics
+		SystemInfoResource(),
 	}
 }
 
@@ -112,6 +115,30 @@ func DisplaysResource() inventory.ServerResource {
 				return nil, fmt.Errorf("enumerate displays: %w", err)
 			}
 			return jsonResult(uriDisplays, displays)
+		},
+	)
+}
+
+// uriSystem exposes the OS/hardware inventory.
+const uriSystem = "macos://system/info"
+
+// SystemInfoResource exposes the OS/hardware inventory.
+func SystemInfoResource() inventory.ServerResource {
+	return NewResourceFromHandler(
+		ToolsetDiagnostics,
+		mcp.Resource{
+			Name:        "system-info",
+			Title:       "System information",
+			URI:         uriSystem,
+			MIMEType:    "application/json",
+			Description: "OS, hardware, memory, disk, SIP, FileVault and MDM-enrollment inventory for this machine.",
+		},
+		func(ctx context.Context, deps ToolDependencies, _ *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+			info, err := deps.Desktop().GetSystemInfo(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("read system info: %w", err)
+			}
+			return jsonResult(uriSystem, info)
 		},
 	)
 }

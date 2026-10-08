@@ -38,6 +38,26 @@ func AllTools() []inventory.ServerTool {
 		Clipboard(),
 		Process(),
 		Notification(),
+
+		// system-admin toolset (opt-in: persists across reboots)
+		Defaults(),
+		LaunchdJob(),
+
+		// shell toolset
+		Shell(),
+		LaunchExecutable(),
+
+		// filesystem toolset
+		FileSystem(),
+
+		// web toolset
+		Scrape(),
+
+		// diagnostics toolset (1st-line support)
+		SystemInfo(),
+		Service(),
+		UnifiedLog(),
+		Network(),
 	}
 }
 

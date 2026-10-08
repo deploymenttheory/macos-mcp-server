@@ -126,11 +126,9 @@ func (d *Desktop) ProcessList(sortBy string, limit int) ([]ProcessInfo, error) {
 // this user may not inspect.
 func pidPath(pid int) string {
 	buf := make([]byte, 4096) // PROC_PIDPATHINFO_MAXSIZE
-	n := libproc.Pidpath(
-		int32(pid),
-		unsafe.Pointer(&buf[0]),
-		uint32(len(buf)),
-	) //nolint:gosec // a pid_t is 32 bits and the buffer is 4 KiB
+	pid32 := int32(pid)       //nolint:gosec // a pid_t is 32 bits
+	size := uint32(len(buf))  //nolint:gosec // 4 KiB
+	n := libproc.Pidpath(pid32, unsafe.Pointer(&buf[0]), size)
 	if n <= 0 {
 		return ""
 	}
