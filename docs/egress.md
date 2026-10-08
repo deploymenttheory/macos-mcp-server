@@ -34,7 +34,8 @@ nobody is watching. Missing elevation is fatal at startup, never degraded.
 
 pf filters by socket owner, not by executable. The scoped tier therefore
 blocks everything the console user runs, which is wider than the Windows
-tier; the status surface and the audit record say `scope: user` so nobody
+tier; the `egress.enforce.applied` audit record carries `scope: user` and the
+uid, and the startup log warns, so nobody
 reads it as per-application. A process running as another uid (a LaunchDaemon,
 root) is not covered. A Network Extension content filter would match by
 application, but needs a signed system extension in an app bundle, which this

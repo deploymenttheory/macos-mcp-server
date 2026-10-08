@@ -1,0 +1,143 @@
+# Release packaging for macos-mcp-server.
+#
+# The server is pure Go: every binding is purego (dlopen + function pointers),
+# with no cgo anywhere, so both macOS targets build from one runner and are
+# lipo'd into a single universal binary. Signing and notarization are
+# mandatory: TCC grants are keyed on the signing identity, so an unsigned or
+# ad-hoc build would re-prompt for Accessibility on every update.
+version: 2
+
+project_name: macos-mcp-server
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: macos-mcp-server
+    main: ./cmd/macos-mcp-server
+    binary: macos-mcp-server
+    env:
+      - CGO_ENABLED=0
+    goos: [darwin]
+    goarch: [amd64, arm64]
+    flags:
+      - -trimpath
+    ldflags:
+      # -s -w drop the symbol and DWARF tables a released binary does not need.
+      # The version is stamped into main.version so `--version` names the tag.
+      - -s -w
+      - -X main.version={{ .Version }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+universal_binaries:
+  - id: macos-mcp-server
+    ids: [macos-mcp-server]
+    name_template: macos-mcp-server
+    # One binary, not three: the per-arch slices are an implementation detail.
+    replace: true
+    hooks:
+      post:
+        # Developer ID signing with the hardened runtime and a secure
+        # timestamp. The identifier is what TCC keys grants on, so it is fixed
+        # here and in `make sign-dev`. The entitlements file is deliberately
+        # empty; it exists so a future entitlement shows up in a diff.
+        - cmd: .github/scripts/sign.sh "{{ .Path }}" "{{ .IsSnapshot }}"
+          output: true
+        - cmd: .github/scripts/notarize.sh "{{ .Path }}" "{{ .IsSnapshot }}"
+          output: true
+
+archives:
+  - id: macos-mcp-server
+    ids: [macos-mcp-server]
+    # A predictable name: macos-mcp-server_1.0.0_darwin_universal.tar.gz.
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_universal"
+    formats: [tar.gz]
+    files:
+      - README.md
+      - LICENSE
+      - entitlements/macos-mcp-server.entitlements
+      # The starting-point policy documents ship alongside the binary so an
+      # operator has something to point --policy-config at on first run.
+      - policy/examples/*.json
+
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
+  algorithm: sha256
+
+# A CycloneDX SBOM per archive. Requires syft on the runner.
+sboms:
+  - id: archives
+    artifacts: archive
+
+# Sign the checksum file rather than each archive: verifying the checksums
+# verifies every archive through it. Keyless signing binds the signature to
+# this workflow's identity, so there is no private key to hold or rotate.
+signs:
+  - cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    args:
+      - sign-blob
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: checksum
+    output: true
+
+homebrew_casks:
+  - name: macos-mcp-server
+    ids: [macos-mcp-server]
+    binaries: [macos-mcp-server]
+    repository:
+      owner: deploymenttheory
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    homepage: https://github.com/deploymenttheory/macos-mcp-server
+    description: MCP server that drives the macOS desktop under an auditable guardrail stack
+    license: MIT
+    # The binary is Developer ID signed and notarized, so no quarantine
+    # removal is needed; a cask rather than a formula because it ships a
+    # prebuilt notarized binary, not source to compile.
+    caveats: |
+      Grant Accessibility and Screen Recording once, then they persist across upgrades:
+        macos-mcp-server permissions request
+      Requires macOS 27 or later.
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  # release-please writes CHANGELOG.md from the conventional commits and owns
+  # the release notes.
+  disable: true
+
+release:
+  # The release already exists: release-please creates it when it merges its
+  # pull request, and this run attaches the artifacts to it.
+  mode: append
+  footer: |
+    ---
+
+    The binary is universal (arm64 + amd64), Developer ID signed and notarized,
+    pure Go with no runtime dependencies, and requires macOS 27 or later. The
+    transport is stdio only: there is no network listener.
+
+    Install with Homebrew:
+
+    ```console
+    brew install deploymenttheory/tap/macos-mcp-server
+    ```
+
+    Or verify a download against the signed checksum file:
+
+    ```console
+    cosign verify-blob \
+      --bundle macos-mcp-server_{{ .Version }}_checksums.txt.sigstore.json \
+      --certificate-identity-regexp 'https://github.com/deploymenttheory/macos-mcp-server/.*' \
+      --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+      macos-mcp-server_{{ .Version }}_checksums.txt
+
+    shasum -a 256 -c macos-mcp-server_{{ .Version }}_checksums.txt --ignore-missing
+    codesign -dv --verbose=4 macos-mcp-server   # Authority=Developer ID Application
+    spctl -a -vv -t install macos-mcp-server    # source=Notarized Developer ID
+    ```

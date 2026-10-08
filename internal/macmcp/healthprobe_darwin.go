@@ -4,6 +4,7 @@ package macmcp
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"runtime"
@@ -102,15 +103,83 @@ func (p *systemProbe) DeviceGuard() (signals.DeviceGuardState, error) {
 	return st, nil
 }
 
-// BitLocker reads FileVault: one volume, the boot volume, protected when
-// `fdesetup status` says FileVault is on.
+// BitLocker reads FileVault per APFS volume: every Data-role or roleless
+// volume (the ones that hold user data) is reported with its FileVault
+// state, so a second, unencrypted data volume fails the signal the way a
+// second BitLocker-less drive does on Windows. System-reserved volumes
+// (Preboot, Recovery, VM, Hardware, xART, Update) are expected to be
+// unencrypted and are left out. When diskutil cannot be read, the boot
+// volume's fdesetup answer stands alone.
 func (p *systemProbe) BitLocker() ([]signals.BitLockerVolume, error) {
+	if vols, err := apfsDataVolumes(probeRun); err == nil && len(vols) > 0 {
+		return vols, nil
+	}
 	out, err := probeRun("fdesetup", "status")
 	if err != nil {
 		return nil, err
 	}
 	on := strings.Contains(out, "FileVault is On")
 	return []signals.BitLockerVolume{{Mount: "/", Protected: on}}, nil
+}
+
+// apfsDataVolumes reads `diskutil apfs list -plist`, converted to JSON by
+// plutil(1) so no plist reader has to be maintained for one caller, and
+// keeps the user-data volumes with their FileVault state.
+func apfsDataVolumes(run func(...string) (string, error)) ([]signals.BitLockerVolume, error) {
+	raw, err := run("diskutil", "apfs", "list", "-plist")
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), probeTimeout)
+	defer cancel()
+	res, err := clirunner.Run(ctx, []string{"plutil", "-convert", "json", "-o", "-", "-"},
+		clirunner.Options{Timeout: probeTimeout, Stdin: []byte(raw)})
+	if err != nil {
+		return nil, fmt.Errorf("plutil: %w", err)
+	}
+	return ParseAPFSVolumes(res.Stdout)
+}
+
+// ParseAPFSVolumes reads the JSON form of the diskutil listing and keeps the
+// volumes whose roles are user data (Data, or none). Exported for the test.
+func ParseAPFSVolumes(raw string) ([]signals.BitLockerVolume, error) {
+	//nolint:tagliatelle // diskutil's own key spelling
+	var doc struct {
+		Containers []struct {
+			Volumes []struct {
+				Name      string   `json:"Name"`
+				FileVault bool     `json:"FileVault"`
+				Roles     []string `json:"Roles"`
+			} `json:"Volumes"`
+		} `json:"Containers"`
+	}
+	if err := json.Unmarshal([]byte(raw), &doc); err != nil {
+		return nil, fmt.Errorf("parse diskutil output: %w", err)
+	}
+	var vols []signals.BitLockerVolume
+	for _, c := range doc.Containers {
+		for _, v := range c.Volumes {
+			if !isDataVolume(v.Roles) {
+				continue
+			}
+			vols = append(vols, signals.BitLockerVolume{Mount: v.Name, Protected: v.FileVault})
+		}
+	}
+	return vols, nil
+}
+
+// isDataVolume reports whether a volume holds user data: the Data role, or
+// no role at all (a user-created volume).
+func isDataVolume(roles []string) bool {
+	if len(roles) == 0 {
+		return true
+	}
+	for _, r := range roles {
+		if r == "Data" {
+			return true
+		}
+	}
+	return false
 }
 
 // PlatformAttestation is unavailable on macOS; the signal skips rather than

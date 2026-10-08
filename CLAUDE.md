@@ -74,9 +74,10 @@ Rules that follow:
   call engine methods; the engine decides what runs on the main thread.
 - CF references retained during a snapshot are released on the main thread
   when the snapshot is swapped. Never release from a caller goroutine.
-- Screenshot and recording capture are deliberately thread-agnostic
-  (ScreenCaptureKit is asynchronous and awaited with a context), which is what
-  lets the recorder capture concurrently. Don't "fix" it by routing through `Do`.
+- Screenshot and recording capture are deliberately thread-agnostic (the
+  screenshot awaits ScreenCaptureKit's completion handler with a context; the
+  recorder is a `screencapture -v` child process), which is what lets the
+  recorder capture concurrently. Don't "fix" it by routing through `Do`.
 - Subcommands that never touch AppKit (`policy test`, `journey validate`,
   `evidence verify`, `permissions check`) must not pump the run loop.
 
@@ -233,6 +234,20 @@ builds the server for stdio, the capture and the conformance host alike. Two
 passes, recorded separately (product, fixtures), plus a 2025-11-25 backcompat
 pass. Gate on the suite, never re-derive it; never reintroduce a score.
 
+## Release
+
+`release.yml` runs on a `v*` tag from release-please: goreleaser builds both
+architectures, lipo's one universal binary, and the post hooks sign it
+(`.github/scripts/sign.sh`: Developer ID, hardened runtime, timestamp, the
+`com.deploymenttheory.macos-mcp-server` identifier TCC keys grants on) and
+notarize it (`notarize.sh`). A release with a missing secret **fails**; it
+never falls back to an ad-hoc signature, because that would make every user
+re-grant Accessibility on update. `make release-snapshot` is the local dry run
+(ad-hoc signed, notarization skipped, nothing published). Checksums are
+cosign-signed keyless, each archive carries a syft SBOM, and a cask lands in
+`deploymenttheory/homebrew-tap`. A bare Mach-O cannot be stapled; Gatekeeper
+checks the notarization online on first run.
+
 ## Build tags
 
 Everything is `//go:build darwin && (amd64 || arm64)` except nothing: the
@@ -249,5 +264,5 @@ adds the loopback HTTP host and the suite fixtures and nothing else.
   `CGWindowListCopyWindowInfo` returns empty names without it. Titles come
   from the accessibility tree, which needs only Accessibility.
 - **`SMCopyAllJobDictionaries` and `CGWindowListCreateImage` are deprecated**
-  and used only as flag-gated cross-checks behind `launchctl` and
-  ScreenCaptureKit.
+  and used only as flag-gated cross-checks behind `launchctl` and the
+  ScreenCaptureKit screenshot path.

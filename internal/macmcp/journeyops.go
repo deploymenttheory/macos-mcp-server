@@ -19,6 +19,10 @@ import (
 	"github.com/deploymenttheory/mcp-server-core/toolkit"
 )
 
+// A journey's close_window lowers to the native chord: Cmd+W here, where the
+// shared vocabulary's default (Alt+F4) closes nothing.
+func init() { journeys.CloseWindowShortcut = "cmd+w" }
+
 // errNoOutputPath reports a record request with no --out destination.
 var errNoOutputPath = errors.New("an output path is required (--out)")
 

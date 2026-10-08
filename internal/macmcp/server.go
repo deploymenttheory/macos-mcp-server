@@ -583,7 +583,8 @@ func RunStdio(ctx context.Context, cfg Config) error {
 		// containment: a misbehaving model must not be able to isolate or shut
 		// down the device by asking.
 		stopSession := executor.StopGracefully
-		if devicePolicy.Kill.Actions.Isolate || devicePolicy.Kill.Actions.Lock || devicePolicy.Kill.Actions.Shutdown {
+		actions := devicePolicy.Kill.Actions
+		if actions.Isolate || actions.Lock || actions.Shutdown || len(actions.KillProcs) > 0 {
 			stopSession = kill.Trip
 		}
 		killTool, killHandler := status.KillTool(stopSession)

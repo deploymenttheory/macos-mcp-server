@@ -349,6 +349,21 @@ func provisionCredentials(
 ) ([]installedCredential, func(), error) {
 	var installed []installedCredential
 	if cfg.CredentialsFile != "" {
+		// Residue from a session that never reached its cleanup is removed
+		// first, so a crash cannot leave a secret installed past its session.
+		switch recovered, err := dsk.RecoverCredentials(); {
+		case err != nil:
+			if logger != nil {
+				logger.Warn("could not clean up credentials from a previous session", "error", err)
+			}
+		case recovered > 0:
+			if logger != nil {
+				logger.Warn("recovered credentials left by a previous session", "removed", recovered)
+			}
+			if auditLog != nil {
+				_, _ = auditLog.Append("credentials.recovered", map[string]any{"removed": recovered})
+			}
+		}
 		entries, err := loadCredentialsFile(cfg.CredentialsFile)
 		if err != nil {
 			return nil, nil, err

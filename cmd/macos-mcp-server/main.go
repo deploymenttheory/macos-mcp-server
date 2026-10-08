@@ -55,7 +55,9 @@ func newRootCmd() *cobra.Command {
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
 
-	root.AddCommand(newStdioCmd(), policyCmd(), auditCmd(), evidenceCmd(), journeyCmd(), newPersonasCmd(), newPermissionsCmd())
+	root.AddCommand(newStdioCmd(), policyCmd(), auditCmd(), evidenceCmd(), journeyCmd(),
+		newPersonasCmd(), newPermissionsCmd(), conformanceReportCmd())
+	addConformanceCommand(root)
 	return root
 }
 

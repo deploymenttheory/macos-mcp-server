@@ -18,6 +18,7 @@ package macdesktop
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"unicode/utf16"
 	"unicode/utf8"
 	"unsafe"
@@ -84,7 +85,9 @@ type Point struct{ X, Y int }
 // serviceFor is the keychain service a target is stored under. Namespaced so
 // the server's items are distinguishable from the user's own, and so removal
 // on exit cannot touch anything the server did not add.
-func serviceFor(target string) string { return "com.deploymenttheory.macos-mcp-server:" + target }
+const servicePrefix = "com.deploymenttheory.macos-mcp-server:"
+
+func serviceFor(target string) string { return servicePrefix + target }
 
 // WriteCredential installs a credential into the login keychain. An existing
 // item under the same target and username is updated.
@@ -256,4 +259,29 @@ func zeroUnits(u []uint16) {
 	for i := range u {
 		u[i] = 0
 	}
+}
+
+// RecoverCredentials removes every keychain item this server installed in an
+// earlier session that never got to remove it (a crash past the deferred
+// cleanup, a SIGKILL). The namespaced service prefix is what makes this safe:
+// nothing but this server writes items under it. It runs before each
+// install, the way the egress enforcer recovers its rules.
+func (d *Desktop) RecoverCredentials() (int, error) {
+	items, err := keychain.ListGenericPasswords()
+	if err != nil {
+		return 0, fmt.Errorf("list keychain items: %w", err)
+	}
+	removed := 0
+	var errs []error
+	for _, it := range items {
+		if !strings.HasPrefix(it.Service, servicePrefix) {
+			continue
+		}
+		if err := keychain.DeleteGenericPassword(it.Service, it.Account); err != nil {
+			errs = append(errs, fmt.Errorf("delete %s: %w", it.Service, err))
+			continue
+		}
+		removed++
+	}
+	return removed, errors.Join(errs...)
 }

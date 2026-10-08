@@ -287,3 +287,27 @@ func (e *Enforcer) Observe(ctx context.Context, anchor string) ([]string, error)
 
 // ErrNoPFToken reports that pfctl -E did not print a reference token.
 var ErrNoPFToken = errors.New("pfctl -E returned no token")
+
+// Describe reports the applied tier the way pf actually filters, for the
+// egress.enforce.applied audit record: "user" scope with the uid when the
+// policy named applications, "machine" under a global block.
+func (e *Enforcer) Describe() map[string]any {
+	e.mu.Lock()
+	rs := e.current
+	e.mu.Unlock()
+	if rs == nil {
+		return map[string]any{"scope": "none"}
+	}
+	switch {
+	case rs.GlobalBlock:
+		return map[string]any{"scope": "machine", "anchor": EgressAnchor}
+	case rs.ScopedUID >= 0:
+		return map[string]any{
+			"scope":  "user",
+			"uid":    rs.ScopedUID,
+			"anchor": EgressAnchor,
+			"note":   "pf matches on the socket owner, not the executable; the listed applications are not matched individually",
+		}
+	}
+	return map[string]any{"scope": "none"}
+}

@@ -138,15 +138,16 @@ func (p *systemProbe) RunContext() signals.RunContext {
 	return rc
 }
 
-// IsAdmin reports membership of the admin group (gid 80).
+// IsAdmin reports membership of the admin group (gid 80). A lookup that
+// fails reports admin: "could not tell" must not pass the not-admin signal.
 func (p *systemProbe) IsAdmin() bool {
 	u, err := user.Current()
 	if err != nil {
-		return false
+		return true
 	}
 	gids, err := u.GroupIds()
 	if err != nil {
-		return false
+		return true
 	}
 	for _, g := range gids {
 		if g == "80" {
