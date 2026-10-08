@@ -16,6 +16,14 @@ on:
   push:
     tags:
       - "v*"
+  # Rebuild an existing tag with the workflow as it is on the default
+  # branch, for when a release run failed on a workflow bug: a re-run would
+  # replay the broken file, and a moved tag is a rewritten release.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to build, e.g. v0.1.1"
+        required: true
 
 permissions:
   contents: read
@@ -27,14 +35,17 @@ jobs:
     permissions:
       contents: write  # attach the archives to the release
       id-token: write  # keyless cosign: the signature names this workflow
-    env:
-      # Outside the checkout: security(1) writes lock files beside the
-      # keychain, and goreleaser refuses to release from a dirty tree.
-      KEYCHAIN_PATH: ${{ runner.temp }}/release-signing.keychain-db
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref }}
+
+      # Outside the checkout: security(1) writes lock files beside the
+      # keychain, and goreleaser refuses to release from a dirty tree. Set
+      # here because the runner context is not available in a job-level env.
+      - name: Choose the keychain path
+        run: echo "KEYCHAIN_PATH=$RUNNER_TEMP/release-signing.keychain-db" >> "$GITHUB_ENV"
 
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
