@@ -188,6 +188,11 @@ func platformIdentity() (serial, uuid string) {
 	if matching.IsNil() {
 		return "", ""
 	}
+	// IOServiceGetMatchingService consumes one reference to the matching
+	// dictionary, and the SDK adopted the one IOServiceMatching returned (its
+	// finalizer will release it). Retain first so both releases are balanced;
+	// without this the finalizer over-releases and the collector crashes.
+	corefoundation.CFRetain(matching)
 	entry := iokit.IOServiceGetMatchingService(
 		int(iokit.KIOMainPortDefault()),
 		corefoundation.CFDictionaryRef(matching),

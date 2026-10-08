@@ -94,6 +94,21 @@ jobs:
             exit 1
           fi
 
+      # The shipped policy examples must load against this build's signal set,
+      # and the fixtures must decide as written. Pure logic; no device state.
+      - name: Policy examples validate and fixtures pass
+        run: |
+          for p in policy/examples/*.json; do
+            go run ./cmd/macos-mcp-server policy validate --policy-config "$p"
+          done
+          go run ./cmd/macos-mcp-server policy test policy/examples/tests/*.json
+
+      - name: Journey examples validate
+        run: |
+          for j in journeys/examples/*.json; do
+            go run ./cmd/macos-mcp-server journey validate "$j"
+          done
+
       # What a hosted runner grants, for the record. Never gating: the grants
       # are a property of the machine, not the code.
       - name: Report TCC permissions on this runner

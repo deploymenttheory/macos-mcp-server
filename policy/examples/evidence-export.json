@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "mode": "enforce",
+  "signals": {
+    "run-context": { "ttl": "0s" },
+    "mdm-enrolled": { "ttl": "5m" }
+  },
+  "rules": [
+    {
+      "name": "interactive-session",
+      "match": { "toolset": "*" },
+      "require": ["run-context"],
+      "on_fail": "deny"
+    },
+    {
+      "name": "startup-admission",
+      "match": { "scope": "startup" },
+      "require": ["run-context", "mdm-enrolled"],
+      "on_fail": "deny"
+    }
+  ],
+  "kill": {
+    "triggers": {
+      "posture_drift": true,
+      "rugpull": true,
+      "heartbeat_gap": true,
+      "sentinel": true
+    },
+    "actions": {
+      "isolate": false,
+      "lock": false,
+      "shutdown": false
+    }
+  },
+  "transparency": {
+    "audit_destination": "/Library/Application Support/MacOSMCP/audit/",
+    "recording_dir": "/Library/Application Support/MacOSMCP/recordings",
+    "evidence_dir": "/Library/Application Support/MacOSMCP/evidence",
+    "heartbeat": "30s",
+    "banner": true,
+    "export": {
+      "provider": "signed_url",
+      "timeout": "5m"
+    }
+  },
+  "inflight": {
+    "interval": "60s"
+  },
+  "enforce_https": true
+}

@@ -204,10 +204,13 @@ such, until the harness grows platform-neutral names.
 The egress enforcer (`internal/macguard/pf.go`) loads rules into a sub-anchor
 under Apple's `com.apple/*` reference so `/etc/pf.conf` is never edited. pf
 cannot match on an executable, so the "scoped" tier is **uid-scoped** and the
-status surface says so. The invariants carry over: allows before the block and
-restore in reverse; the state file is written before any mutation and read on
-every start; `Suspend` never restores; missing elevation is fatal, not
-degraded. Live tests are gated by `MACOS_MCP_GLOBAL_BLOCK_TEST=1` and
+status surface says so. The invariants carry over, read for pf's last-match semantics: the block
+is rendered first and the `quick` passes after it; restore runs in reverse; the
+state file is written before any mutation and read on every start; `Suspend`
+reloads the anchor with the block rules only and never restores; missing
+elevation is fatal, not degraded. The actuator (`actuator.go`) uses its own
+isolation anchor, kills by exact process name with TERM then KILL, locks
+through System Events and shuts down through `shutdown(8)` as root. Live tests are gated by `MACOS_MCP_GLOBAL_BLOCK_TEST=1` and
 `MACOS_MCP_SCOPED_TEST=1` — deliberately different variables.
 
 ## Credentials — the never-read invariant

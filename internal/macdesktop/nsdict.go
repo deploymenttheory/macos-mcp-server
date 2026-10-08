@@ -25,3 +25,7 @@ func nsDictionaryNumber(dict obj.Object, key string) int64 {
 	ll := int64(r) //nolint:gosec // the selector returns a long long in the register
 	return ll
 }
+
+// NSDictionaryNumber reads an NSNumber-valued key from a dictionary as int64,
+// or 0 when the key is absent. Exported for the run-context probe.
+func NSDictionaryNumber(dict obj.Object, key string) int64 { return nsDictionaryNumber(dict, key) }

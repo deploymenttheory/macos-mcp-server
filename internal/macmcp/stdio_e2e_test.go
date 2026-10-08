@@ -58,7 +58,7 @@ func TestStdioEndToEnd(t *testing.T) {
 	for _, tool := range tools.Tools {
 		names[tool.Name] = true
 	}
-	for _, want := range []string{"Snapshot", "Click", "App", "Clipboard", "Process"} {
+	for _, want := range []string{"Snapshot", "Click", "App", "Clipboard", "Process", "GuardrailStatus", "Kill"} {
 		if !names[want] {
 			t.Errorf("tools/list is missing %s", want)
 		}
