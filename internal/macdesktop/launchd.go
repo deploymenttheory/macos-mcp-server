@@ -343,11 +343,8 @@ func (d *Desktop) CreateJob(ctx context.Context, spec JobSpec) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("encode job: %w", err)
 	}
-	if err := os.WriteFile(
-		path,
-		raw,
-		0o644,
-	); err != nil { //nolint:gosec // launchd requires the plist to be world-readable
+	perm := os.FileMode(0o644) //nolint:gosec // launchd requires the plist to be world-readable
+	if err := os.WriteFile(path, raw, perm); err != nil {
 		return "", fmt.Errorf("write %s: %w", path, err)
 	}
 	// Re-registering an existing label needs a bootout first; a failure there

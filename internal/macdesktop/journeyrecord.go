@@ -116,9 +116,8 @@ func tapHandler(_ uintptr, typ uint32, event uintptr, _ uintptr) uintptr {
 			return event
 		}
 		in.kind = "key"
-		in.keycode = uint16(
-			coregraphics.CGEventGetIntegerValueField(ev, coregraphics.KCGKeyboardEventKeycode),
-		) //nolint:gosec // keycodes are 16-bit
+		kc := coregraphics.CGEventGetIntegerValueField(ev, coregraphics.KCGKeyboardEventKeycode)
+		in.keycode = uint16(kc) //nolint:gosec // keycodes are 16-bit
 		in.flags = coregraphics.CGEventGetFlags(ev)
 		if n, unit := coregraphics.CGEventKeyboardGetUnicodeString(ev, 1); n > 0 {
 			in.char = rune(unit)

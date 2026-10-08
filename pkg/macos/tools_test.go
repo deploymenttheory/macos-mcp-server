@@ -72,7 +72,7 @@ func TestAllToolsValid(t *testing.T) {
 // deliberate tripwire: bump it when a tool lands. Parity with
 // windows-mcp-server is 35.
 func TestExpectedToolCount(t *testing.T) {
-	const want = 33 // milestone 3: + Recording, testing (2), planning (2); credentials and packages land in milestone 4
+	const want = 35 // milestone 4: full parity with windows-mcp-server
 	if got := len(AllTools()); got != want {
 		t.Errorf("tool count = %d, want %d (update this test intentionally)", got, want)
 	}
