@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/deploymenttheory/macos-mcp-server/compare/v0.1.0...v0.1.1) (2026-10-08)
+
+
+### Bug Fixes
+
+* **release:** create the signing keychain outside the checkout ([a11adc2](https://github.com/deploymenttheory/macos-mcp-server/commit/a11adc29a5028330a56c86fafe4d254d6c61d6c3))
+
 ## 0.1.0 (2026-10-08)
 
 
