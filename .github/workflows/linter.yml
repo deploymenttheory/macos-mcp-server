@@ -35,6 +35,10 @@ jobs:
           # Go is checked by go-lint.yml on the native macOS runner. Super-Linter
           # combines changed Go files from different packages into one command.
           VALIDATE_GITHUB_ACTIONS: true
+          # Super-Linter otherwise misses the repo's actionlint runner-label
+          # config and rejects GitHub's xcode-27 preview image.
+          LINTER_RULES_PATH: .github
+          GITHUB_ACTIONS_CONFIG_FILE: actionlint.yaml
           VALIDATE_CPD: false # Disable CPD (Copy Paste Detection) for all languages
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # To report GitHub Actions status checks
           MARKDOWN_CONFIG_FILE: .markdown-lint.yml
