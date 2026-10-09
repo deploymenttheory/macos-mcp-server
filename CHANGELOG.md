@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/deploymenttheory/macos-mcp-server/compare/v0.2.0...v0.2.1) (2026-10-09)
+
+
+### Bug Fixes
+
+* read legacy Developer ID P12 during release ([#26](https://github.com/deploymenttheory/macos-mcp-server/issues/26)) ([61b4e70](https://github.com/deploymenttheory/macos-mcp-server/commit/61b4e702cec3a837a419382ab8b746997eb047eb))
+
 ## [0.2.0](https://github.com/deploymenttheory/macos-mcp-server/compare/v0.1.2...v0.2.0) (2026-10-09)
 
 
