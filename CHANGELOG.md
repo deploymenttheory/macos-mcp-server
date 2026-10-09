@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/deploymenttheory/macos-mcp-server/compare/v0.1.2...v0.2.0) (2026-10-09)
+
+
+### Features
+
+* distribute macOS server for Codex and Claude ([#24](https://github.com/deploymenttheory/macos-mcp-server/issues/24)) ([76f64a7](https://github.com/deploymenttheory/macos-mcp-server/commit/76f64a77b20e106e36cec750d8b84720195f7900))
+
 ## [0.1.2](https://github.com/deploymenttheory/macos-mcp-server/compare/v0.1.1...v0.1.2) (2026-10-08)
 
 
