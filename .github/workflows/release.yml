@@ -43,6 +43,12 @@ jobs:
           fetch-depth: 0
           ref: ${{ inputs.tag || github.ref }}
 
+      # workflow_dispatch checks out an older release tag while this workflow
+      # runs from the default branch. Keep the release source at the tag and
+      # use the signing helper from the exact revision running this workflow.
+      - name: Stage bundle signer from the workflow revision
+        run: git show "${GITHUB_SHA}:scripts/mcpb-signature.py" > "$RUNNER_TEMP/mcpb-signature.py"
+
       # Outside the checkout: security(1) writes lock files beside the
       # keychain, and goreleaser refuses to release from a dirty tree. Set
       # here because the runner context is not available in a job-level env.
@@ -155,9 +161,9 @@ jobs:
           binary="$RUNNER_TEMP/release-binary/macos-mcp-server"
           bundle="dist/macos-mcp-server_${version}_darwin_arm64.mcpb"
           scripts/package-mcpb.sh "$binary" "$version" "$bundle"
-          python3 scripts/mcpb-signature.py sign "$bundle" --cert "$RUNNER_TEMP/mcpb-cert.pem" \
+          python3 "$RUNNER_TEMP/mcpb-signature.py" sign "$bundle" --cert "$RUNNER_TEMP/mcpb-cert.pem" \
             --key "$RUNNER_TEMP/mcpb-key.pem"
-          python3 scripts/mcpb-signature.py verify "$bundle" --cert "$RUNNER_TEMP/mcpb-cert.pem"
+          python3 "$RUNNER_TEMP/mcpb-signature.py" verify "$bundle" --cert "$RUNNER_TEMP/mcpb-cert.pem"
           security verify-cert -c "$RUNNER_TEMP/mcpb-cert.pem" -p codeSign
           (cd dist && shasum -a 256 "$(basename "$bundle")") > "$bundle.sha256"
           cosign sign-blob --bundle "$bundle.sigstore.json" "$bundle" --yes
@@ -179,7 +185,7 @@ jobs:
           spctl -a -vv -t install "$binary"
           test "$("$binary" --version)" = "macos-mcp-server version $version"
           python3 scripts/smoke-stdio.py "$binary" "$version"
-          python3 scripts/mcpb-signature.py verify \
+          python3 "$RUNNER_TEMP/mcpb-signature.py" verify \
             "dist/macos-mcp-server_${version}_darwin_arm64.mcpb" \
             --cert "$RUNNER_TEMP/mcpb-cert.pem"
           .github/scripts/check-cask.sh dist/homebrew/Casks/macos-mcp-server.rb
