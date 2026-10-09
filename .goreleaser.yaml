@@ -1,8 +1,8 @@
 # Release packaging for macos-mcp-server.
 #
 # The server is pure Go: every binding is purego (dlopen + function pointers),
-# with no cgo anywhere, so both macOS targets build from one runner and are
-# lipo'd into a single universal binary. Signing and notarization are
+# with no cgo anywhere. macOS 27 only runs on Apple silicon, so the release
+# targets arm64. Signing and notarization are
 # mandatory: TCC grants are keyed on the signing identity, so an unsigned or
 # ad-hoc build would re-prompt for Accessibility on every update.
 version: 2
@@ -20,7 +20,7 @@ builds:
     env:
       - CGO_ENABLED=0
     goos: [darwin]
-    goarch: [amd64, arm64]
+    goarch: [arm64]
     flags:
       - -trimpath
     ldflags:
@@ -29,13 +29,6 @@ builds:
       - -s -w
       - -X main.version={{ .Version }}
     mod_timestamp: "{{ .CommitTimestamp }}"
-
-universal_binaries:
-  - id: macos-mcp-server
-    ids: [macos-mcp-server]
-    name_template: macos-mcp-server
-    # One binary, not three: the per-arch slices are an implementation detail.
-    replace: true
     hooks:
       post:
         # Developer ID signing with the hardened runtime and a secure
@@ -50,8 +43,7 @@ universal_binaries:
 archives:
   - id: macos-mcp-server
     ids: [macos-mcp-server]
-    # A predictable name: macos-mcp-server_1.0.0_darwin_universal.tar.gz.
-    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_universal"
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     formats: [tar.gz]
     files:
       - README.md
@@ -88,6 +80,11 @@ homebrew_casks:
   - name: macos-mcp-server
     ids: [macos-mcp-server]
     binaries: [macos-mcp-server]
+    # Homebrew must reject unsupported hosts before downloading the archive.
+    custom_block: |
+      depends_on macos: :golden_gate
+    # Promote the draft release before exposing its download URL in the tap.
+    skip_upload: true
     repository:
       owner: deploymenttheory
       name: homebrew-tap
@@ -101,7 +98,7 @@ homebrew_casks:
     caveats: |
       Grant Accessibility and Screen Recording once, then they persist across upgrades:
         macos-mcp-server permissions request
-      Requires macOS 27 or later.
+      Requires macOS 27 or later on Apple silicon.
 
 snapshot:
   version_template: "{{ incpatch .Version }}-next"
@@ -115,11 +112,14 @@ release:
   # The release already exists: release-please creates it when it merges its
   # pull request, and this run attaches the artifacts to it.
   mode: append
+  draft: true
+  use_existing_draft: true
+  replace_existing_artifacts: true
   footer: |
     ---
 
-    The binary is universal (arm64 + amd64), Developer ID signed and notarized,
-    pure Go with no runtime dependencies, and requires macOS 27 or later. The
+    The binary is arm64, Developer ID signed and notarized,
+    pure Go with no runtime dependencies, and requires macOS 27 or later on Apple silicon. The
     transport is stdio only: there is no network listener.
 
     Install with Homebrew:

@@ -12,10 +12,12 @@ import (
 	"os"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/sys/unix"
 
 	"github.com/deploymenttheory/macos-mcp-server/internal/macmcp"
 	"github.com/deploymenttheory/macos-mcp-server/pkg/macos"
@@ -37,10 +39,34 @@ func init() {
 }
 
 func main() {
+	if err := requireSupportedMacOS(); err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
 	if err := newRootCmd().Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
 	}
+}
+
+func requireSupportedMacOS() error {
+	version, err := unix.Sysctl("kern.osproductversion")
+	if err != nil {
+		return fmt.Errorf("read macOS version: %w", err)
+	}
+	return checkSupportedMacOS(version)
+}
+
+func checkSupportedMacOS(version string) error {
+	major, _, _ := strings.Cut(version, ".")
+	n, err := strconv.Atoi(major)
+	if err != nil {
+		return fmt.Errorf("invalid macOS version %q: %w", version, err)
+	}
+	if n < 27 {
+		return fmt.Errorf("macOS 27 or later is required (found %s)", version)
+	}
+	return nil
 }
 
 func newRootCmd() *cobra.Command {

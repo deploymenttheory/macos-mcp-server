@@ -19,7 +19,7 @@ works if the files sit somewhere the automated user cannot modify.
 
 ```
 /opt/homebrew/bin/
-    macos-mcp-server                the Homebrew cask (/usr/local/bin on an Intel Mac); root-owned
+    macos-mcp-server                the Homebrew cask (macOS 27, Apple silicon); root-owned
 
 /Library/Application Support/MacOSMCP/
     policy.json                     the device policy

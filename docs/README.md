@@ -3,6 +3,7 @@
 | Guide | What it covers |
 |---|---|
 | [getting-started.md](getting-started.md) | Install, grant permissions, connect from Claude Code, Claude Desktop, Cursor and Codex |
+| [releasing.md](releasing.md) | Package formats, version policy, release gates, discovery channels and recovery |
 | [permissions.md](permissions.md) | The TCC grants each tool needs, why signing matters, managing grants with MDM |
 | [toolsets-and-personas.md](toolsets-and-personas.md) | The tool surface, toolsets, personas and how to compose one |
 | [deployment-decision.md](deployment-decision.md) | Deciding whether to deploy this on a fleet |

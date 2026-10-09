@@ -13,6 +13,17 @@ on:
       - 'go.sum'
       - 'policy/**'
       - 'journeys/**'
+      - '.goreleaser.yaml'
+      - 'release-please-config.json'
+      - 'packaging/**'
+      - 'scripts/package-mcpb.sh'
+      - 'scripts/smoke-stdio.py'
+      - '.github/scripts/**'
+      - '.github/workflows/release.yml'
+      - '.github/workflows/publish-registry.yml'
+      - 'README.md'
+      - 'docs/getting-started.md'
+      - 'docs/permissions.md'
 
 permissions:
   contents: read
@@ -32,6 +43,8 @@ jobs:
     steps:
       - name: Check Out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
@@ -58,14 +71,6 @@ jobs:
           fi
 
       - name: Build (arm64)
-        run: go build ./...
-
-      # The (amd64 || arm64) build tag is asserted everywhere and verified
-      # nowhere else; the universal binary needs both to build.
-      - name: Build (amd64 cross-compile)
-        env:
-          GOARCH: amd64
-          CGO_ENABLED: "0"
         run: go build ./...
 
       - name: Vet
@@ -113,3 +118,27 @@ jobs:
       # are a property of the machine, not the code.
       - name: Report TCC permissions on this runner
         run: go run ./cmd/macos-mcp-server permissions check --json || true
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+
+      - uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
+        with:
+          version: v2.18.2
+          install-only: true
+
+      - name: Validate the distributable archive, cask and Claude bundle
+        run: |
+          set -euo pipefail
+          npm install --global --no-audit --no-fund @anthropic-ai/mcpb@2.1.2
+          goreleaser check
+          goreleaser release --snapshot --clean --skip=sign,notarize,publish,sbom
+          version=$(jq -r .version dist/metadata.json)
+          binary=$(jq -r '.[] | select(.type == "Binary") | .path' dist/artifacts.json)
+          test -n "$binary"
+          test "$("$binary" --version)" = "macos-mcp-server version $version"
+          python3 scripts/smoke-stdio.py "$binary" "$version"
+          scripts/package-mcpb.sh "$binary" "$version" dist/snapshot.mcpb
+          mcpb validate packaging/mcpb/manifest.json
+          .github/scripts/check-cask.sh dist/homebrew/Casks/macos-mcp-server.rb

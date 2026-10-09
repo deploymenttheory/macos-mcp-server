@@ -1,0 +1,29 @@
+{
+  "manifest_version": "0.3",
+  "name": "macos-mcp-server",
+  "display_name": "macOS MCP Server",
+  "version": "0.0.0",
+  "description": "Local macOS 27 desktop automation through MCP on Apple silicon.",
+  "author": {
+    "name": "Deployment Theory"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/deploymenttheory/macos-mcp-server"
+  },
+  "homepage": "https://github.com/deploymenttheory/macos-mcp-server",
+  "documentation": "https://github.com/deploymenttheory/macos-mcp-server/blob/main/docs/getting-started.md",
+  "support": "https://github.com/deploymenttheory/macos-mcp-server/issues",
+  "license": "MIT",
+  "compatibility": {
+    "platforms": ["darwin"]
+  },
+  "server": {
+    "type": "binary",
+    "entry_point": "server/macos-mcp-server",
+    "mcp_config": {
+      "command": "${__dirname}/server/macos-mcp-server",
+      "args": ["stdio", "--persona", "business-user", "--request-permissions"]
+    }
+  }
+}

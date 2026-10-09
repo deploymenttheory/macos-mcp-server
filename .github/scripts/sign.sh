@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Signs the universal binary for release: Developer ID, hardened runtime,
+# Signs the arm64 binary for release: Developer ID, hardened runtime,
 # secure timestamp, the fixed identifier TCC keys grants on, and the
 # (deliberately empty) entitlements file.
 #

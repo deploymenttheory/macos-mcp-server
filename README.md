@@ -37,7 +37,8 @@ off.
 > [VM isolation](docs/vm-isolation.md), and read [SECURITY.md](SECURITY.md)
 > for what is and is not in scope as a vulnerability.
 
-**Requires macOS 27 or later** (Apple silicon or Intel; the binary is universal).
+**Requires macOS 27 or later on Apple silicon.** [Apple does not support Intel
+Macs on macOS 27](https://support.apple.com/en-us/127455).
 
 ---
 
@@ -46,15 +47,24 @@ off.
 ```sh
 brew install deploymenttheory/tap/macos-mcp-server
 macos-mcp-server permissions request      # grant Accessibility and Screen Recording once
+SERVER="$(command -v macos-mcp-server)"
+codex mcp add macos -- "$SERVER" stdio --persona business-user
+# Or, for Claude Code:
+claude mcp add --scope user macos -- "$SERVER" stdio --persona business-user
 ```
 
-Point any MCP client at the binary with the `stdio` subcommand:
+For Claude Desktop, install the `.mcpb` from the [latest GitHub
+release](https://github.com/deploymenttheory/macos-mcp-server/releases) under
+**Settings > Extensions > Advanced settings > Install Extension**. It contains
+the signed server binary and requests the required macOS grants on first launch.
+
+Any other local MCP client can launch the binary with the `stdio` subcommand:
 
 ```json
 {
   "mcpServers": {
     "macos": {
-      "command": "/opt/homebrew/bin/macos-mcp-server",
+      "command": "/absolute/path/from/command-v/macos-mcp-server",
       "args": ["stdio", "--persona", "first-line-support"]
     }
   }
@@ -232,11 +242,12 @@ make conformance        # validate the implemented product behavior
 make release-snapshot   # goreleaser dry run, unsigned
 ```
 
-Releases are cut by release-please and built by `release.yml`: a universal
-binary, Developer ID signed and notarized, with a CycloneDX SBOM, a keyless
-cosign signature over the checksums, and a Homebrew cask in
-`deploymenttheory/homebrew-tap`. See [CONTRIBUTING.md](CONTRIBUTING.md) and
-[CLAUDE.md](CLAUDE.md).
+Releases are cut by release-please and built by `release.yml`: one arm64 binary,
+Developer ID signed and notarized, in a tarball and Claude Desktop `.mcpb`.
+The release also carries a CycloneDX SBOM and keyless cosign signatures; its
+tested cask is published to `deploymenttheory/homebrew-tap`. The release stays
+draft until its assets pass validation. See [Getting started](docs/getting-started.md)
+for installation and upgrades.
 
 ---
 

@@ -99,8 +99,11 @@ macOS shows them and returns at once, so the report printed afterwards usually
 still says `MISSING` until you act in System Settings. Run `check` again when
 you have.
 
-The server itself prompts for nothing at startup. It runs `CheckPermissions`,
-logs each warning to stderr, and serves whatever the grants allow; a tool that
+Normal `stdio` startup prompts for nothing. The Claude Desktop bundle opts into
+`stdio --request-permissions`, which requests missing Accessibility and Screen
+Recording grants on first launch so its embedded binary appears in System
+Settings. After approving them, restart Claude Desktop. The server logs each
+remaining warning to stderr and serves whatever the grants allow; a tool that
 needs a missing grant returns an `IsError` result naming it, so the model can
 tell the operator instead of guessing.
 

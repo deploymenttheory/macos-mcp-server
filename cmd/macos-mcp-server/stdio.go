@@ -19,17 +19,18 @@ import (
 
 func newStdioCmd() *cobra.Command {
 	var (
-		persona      string
-		toolsets     []string
-		tools        []string
-		excludeTools []string
-		readOnly     bool
-		logFile      string
-		policyConfig string
-		overlay      bool
-		recordFPS    int
-		recordCodec  string
-		credsFile    string
+		persona            string
+		toolsets           []string
+		tools              []string
+		excludeTools       []string
+		readOnly           bool
+		logFile            string
+		policyConfig       string
+		overlay            bool
+		recordFPS          int
+		recordCodec        string
+		credsFile          string
+		requestPermissions bool
 	)
 	cmd := &cobra.Command{
 		Use:   "stdio",
@@ -57,6 +58,12 @@ func newStdioCmd() *cobra.Command {
 
 			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
+			if requestPermissions {
+				perms := macmcp.CheckPermissions(ctx)
+				if perms.ConsoleSession && (!perms.Accessibility || !perms.ScreenRecording) {
+					macmcp.RequestPermissions(ctx)
+				}
+			}
 
 			// The server runs on a goroutine and the main thread — this one — is
 			// handed to the main dispatch queue, which the engine's AppKit and
@@ -88,5 +95,6 @@ func newStdioCmd() *cobra.Command {
 	f.IntVar(&recordFPS, "record-fps", 4, "session recording frame rate")
 	f.StringVar(&recordCodec, "record-codec", "h264", "session recording codec: h264 or hevc")
 	f.StringVar(&credsFile, "credentials-file", viper.GetString("credentials-file"), "JSON document of credentials to install into the keychain at init (enables the credentials toolset)")
+	f.BoolVar(&requestPermissions, "request-permissions", viper.GetBool("request-permissions"), "register this binary in macOS Accessibility and Screen Recording settings on startup")
 	return cmd
 }

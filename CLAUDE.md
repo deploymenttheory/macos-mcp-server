@@ -36,7 +36,6 @@ no CV model.
 go build ./...
 go vet -unsafeptr=false ./...   # unsafeptr: the event-tap callback pointer idiom
 go test ./... -count=1
-GOARCH=amd64 CGO_ENABLED=0 go build ./...   # the (amd64 || arm64) tag is asserted everywhere
 golangci-lint run --config=./.golangci.yml
 make sign-dev && ./macos-mcp-server permissions check
 ```
@@ -237,8 +236,8 @@ its fixtures are not part of the required verdict or released binary.
 
 ## Release
 
-`release.yml` runs on a `v*` tag from release-please: goreleaser builds both
-architectures, lipo's one universal binary, and the post hooks sign it
+`release.yml` runs on a `v*` tag from release-please: goreleaser builds arm64
+for macOS 27, and the post hooks sign it
 (`.github/scripts/sign.sh`: Developer ID, hardened runtime, timestamp, the
 `com.deploymenttheory.macos-mcp-server` identifier TCC keys grants on) and
 notarize it (`notarize.sh`). A release with a missing secret **fails**; it
@@ -246,7 +245,9 @@ never falls back to an ad-hoc signature, because that would make every user
 re-grant Accessibility on update. `make release-snapshot` is the local dry run
 (ad-hoc signed, notarization skipped, nothing published). Checksums are
 cosign-signed keyless, each archive carries a syft SBOM, and a cask lands in
-`deploymenttheory/homebrew-tap`. A bare Mach-O cannot be stapled; Gatekeeper
+`deploymenttheory/homebrew-tap` after the draft release is validated and
+published. The same binary is packed into a signed Claude Desktop `.mcpb`.
+A bare Mach-O cannot be stapled; Gatekeeper
 checks the notarization online on first run.
 
 ## Build tags
@@ -260,7 +261,7 @@ adds the loopback HTTP host and the suite fixtures and nothing else.
 - **stdout is reserved** for the MCP stdio transport. Logs go to stderr or a
   file; the audit `stderr` destination writes `AUDIT {json}` lines to stderr.
 - **Never import `opinionated/tools/oslog`** from the SDK: it is the one cgo
-  package, and it would break `CGO_ENABLED=0` and the amd64 cross-compile.
+  package, and it would break the `CGO_ENABLED=0` release build.
 - **Window titles from the window server need Screen Recording**;
   `CGWindowListCopyWindowInfo` returns empty names without it. Titles come
   from the accessibility tree, which needs only Accessibility.

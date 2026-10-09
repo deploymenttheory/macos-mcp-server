@@ -27,7 +27,8 @@ they skip themselves otherwise, visibly (`go test -v`).
 ## Pull requests
 
 - Titles are conventional commits (`feat:`, `fix:`, `docs:`, `chore:` ...);
-  release-please builds the changelog from them.
+  release-please builds the changelog from them. See
+  [Releasing](docs/releasing.md) for packaging and promotion.
 - A new tool bumps `TestExpectedToolCount` and carries honest annotations.
 - Nothing security-shaped is configured by a flag: it goes in the policy
   document, and secrets come from the environment.
