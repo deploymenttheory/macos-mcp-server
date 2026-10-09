@@ -61,6 +61,9 @@ recheck against a fixed MCPB release before removing the workaround.
 
 The release workflow can rebuild a **draft** from the same tag through its
 `workflow_dispatch` input. It refuses to rebuild an already public release.
+On a manual rebuild, the tag supplies the server and packaging source, while
+the exact workflow commit supplies the MCPB signing helper. This lets a workflow
+fix repair a draft without moving its tag; CI tests the same helper staging step.
 If a public release is defective, keep its assets intact, publish a fixed patch
 version and document the known-good older asset as a temporary rollback. The
 Homebrew cask is updated only after the new release and install check pass;
