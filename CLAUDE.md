@@ -29,7 +29,6 @@ no CV model.
 | `agentweave-harness` (imported) | the policy engine, audit chain, rug-pull detection, kill switch, egress proxy |
 | `policy/examples` | starting-point policy documents (validated by the test suite) |
 | `schema/` | vendored MCP protocol schemas + `versions.json` |
-| `conformance/` | expected-failure baselines + committed suite results |
 
 ## Build, test, lint
 
@@ -225,14 +224,16 @@ bits are the real permission here. Removal runs on every shutdown path.
 
 ## MCP conformance
 
-The server targets protocol revision **2026-07-28**, and the verdict comes from
-the official suite (`github.com/modelcontextprotocol/conformance`, HTTP-only)
-run by `.github/workflows/mcp-spec-compliance.yml` against `conformance-serve`,
-which exists only behind `//go:build ... && conformance`. `go build ./...` must
-never compile it; the workflow asserts this. One constructor (`surface.New`)
-builds the server for stdio, the capture and the conformance host alike. Two
-passes, recorded separately (product, fixtures), plus a 2025-11-25 backcompat
-pass. Gate on the suite, never re-derive it; never reintroduce a score.
+The required `.github/workflows/mcp-spec-compliance.yml` job runs on every PR.
+It fails if a newer published MCP schema revision exists, then runs
+`TestProductSpecGate` and the wire result tests against the latest vendored
+schema. `CaptureSurface` uses the same `newSurface` constructor as `RunStdio`;
+the core `surface` package records raw responses, validates each implemented
+capability and definition, and probes safe product methods. Add a validator and
+product probe whenever the server implements another MCP capability or result
+shape. Do not publish a percentage of the full optional protocol surface.
+The optional `conformance` build tag still provides an HTTP diagnostic host;
+its fixtures are not part of the required verdict or released binary.
 
 ## Release
 

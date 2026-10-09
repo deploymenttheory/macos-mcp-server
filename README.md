@@ -1,6 +1,5 @@
 # macos-mcp-server
 
-[![MCP conformance](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fdeploymenttheory%2Fmacos-mcp-server%2Fmain%2Fconformance%2Fbadge.json)](docs/mcp-compliance.md)
 [![Spec compliance](https://github.com/deploymenttheory/macos-mcp-server/actions/workflows/mcp-spec-compliance.yml/badge.svg)](https://github.com/deploymenttheory/macos-mcp-server/actions/workflows/mcp-spec-compliance.yml)
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server that bridges
@@ -85,7 +84,7 @@ do**, see the walk-throughs for a
 | **Session recording** | With `transparency.recording_dir` set, the whole session goes to one `.mov` with timeline markers | [Session recording](docs/recording.md) |
 | **Journeys** | Declarative UI journeys validated offline, run through the planner, recorded from a human session | [Journeys](docs/journeys.md) |
 | **Kill switch** | Out-of-band, tiered containment: isolate (pf), kill processes, lock, shut down, with the recording finalised and the credentials revoked first | [Security architecture](docs/security-architecture.md) |
-| **MCP conformance** | Protocol revision `2026-07-28`, measured by the official suite in CI | [MCP compliance](docs/mcp-compliance.md) |
+| **MCP conformance** | Implemented protocol behavior checked against the latest published spec on every PR | [MCP compliance](docs/mcp-compliance.md) |
 
 ---
 
@@ -191,19 +190,12 @@ macOS reading. Both are spelled out in [the assessment](docs/security-assessment
 
 ## MCP conformance
 
-The server targets protocol revision **`2026-07-28`**. Conformance is measured
-by the official
-[modelcontextprotocol/conformance](https://github.com/modelcontextprotocol/conformance)
-suite, which `.github/workflows/mcp-spec-compliance.yml` runs and commits the
-results of: a **product** pass against the shipped manifest, a **fixtures**
-pass with the suite's named fixture tools registered behind the `conformance`
-build tag, and a **2025-11-25** backward-compatibility run. CI gates on the
-suite's own exit code against committed baselines.
-
-`go build ./...` does not compile the conformance host, so **the released
-binary has no HTTP listener** and is stdio-only. Both it and `stdio` build
-their MCP surface through one function, so what the suite measures is what the
-shipped binary serves. **→ [The report](docs/mcp-compliance.md)**.
+Every PR runs the required **MCP spec gate** against the latest published MCP
+revision. It captures the product's actual advertised surface and raw wire
+responses, checks the definitions and safe method calls against the published
+schema, and fails if a newer revision needs assessment. The check covers the
+features this server implements, without assigning a percentage for optional
+features it does not implement. See [MCP spec gate](docs/mcp-compliance.md).
 
 ---
 
@@ -223,7 +215,6 @@ mcp-server-core          (imported) inventory, toolkit, surface, guardrail runti
 agentweave-harness       (imported) policy engine, audit chain, rug-pull, kill switch, egress proxy
 policy/examples          starting-point policy documents, with fixtures under tests/
 schema/                  vendored MCP protocol schemas, one directory per revision
-conformance/             expected-failure baselines + committed suite results
 ```
 
 All accessibility, event and AppKit work runs on the process main thread
@@ -237,7 +228,7 @@ context via receiving middleware.
 ```sh
 make check              # vet, test, lint
 make sign-dev           # a stable local signing identity so TCC grants survive rebuilds
-make conformance        # the three official-suite passes against the baselines
+make conformance        # validate the implemented product behavior
 make release-snapshot   # goreleaser dry run, unsigned
 ```
 
