@@ -1,0 +1,38 @@
+name: publish-mcp-registry
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing public release tag to publish or verify
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: xcode-27
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag }}
+      - name: Download the published bundle and pinned Registry publisher
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          version=${TAG#v}
+          gh release download "$TAG" --pattern "macos-mcp-server_${version}_darwin_arm64.mcpb" --dir "$RUNNER_TEMP"
+          gh release download "$TAG" --pattern "macos-mcp-server_${version}_darwin_arm64.mcpb.sha256" --dir "$RUNNER_TEMP"
+          (cd "$RUNNER_TEMP" && shasum -a 256 -c "macos-mcp-server_${version}_darwin_arm64.mcpb.sha256")
+          gh release download v1.8.1 --repo modelcontextprotocol/registry \
+            --pattern mcp-publisher_darwin_arm64.tar.gz --dir "$RUNNER_TEMP"
+          tar -xzf "$RUNNER_TEMP/mcp-publisher_darwin_arm64.tar.gz" -C "$RUNNER_TEMP" mcp-publisher
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - name: Publish or confirm the Registry entry
+        env:
+          TAG: ${{ inputs.tag }}
+        run: .github/scripts/publish-registry.sh "$TAG" "$RUNNER_TEMP/macos-mcp-server_${TAG#v}_darwin_arm64.mcpb"
