@@ -119,9 +119,11 @@ jobs:
           security import "$CERT" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
-          openssl pkcs12 -in "$CERT" -clcerts -nokeys -passin env:P12_PASSWORD \
+          # Older Apple-exported P12 files use RC2-40-CBC. OpenSSL 3 only
+          # loads that cipher when its legacy provider is enabled.
+          openssl pkcs12 -legacy -in "$CERT" -clcerts -nokeys -passin env:P12_PASSWORD \
             -out "$RUNNER_TEMP/mcpb-cert.pem"
-          openssl pkcs12 -in "$CERT" -nocerts -nodes -passin env:P12_PASSWORD \
+          openssl pkcs12 -legacy -in "$CERT" -nocerts -nodes -passin env:P12_PASSWORD \
             -out "$RUNNER_TEMP/mcpb-key.pem"
           chmod 600 "$RUNNER_TEMP/mcpb-key.pem"
           rm -f "$CERT"
