@@ -773,6 +773,10 @@ func buildInventory(cfg Config, noSession bool) (*inventory.Inventory, string, e
 // a client actually receives. No desktop engine is created: tools/list never
 // invokes a handler.
 func CaptureSurface(ctx context.Context, cfg Config) (surface.Captured, error) {
+	return captureSurfaceWithProbes(ctx, cfg, nil)
+}
+
+func captureSurfaceWithProbes(ctx context.Context, cfg Config, probe surface.ProbeFunc) (surface.Captured, error) {
 	logger := slog.New(slog.DiscardHandler)
 	inv, personaInstructions, err := buildInventory(cfg, false)
 	if err != nil {
@@ -781,7 +785,7 @@ func CaptureSurface(ctx context.Context, cfg Config) (surface.Captured, error) {
 	deps := macos.NewBaseDeps(nil, logger, nil)
 	s := newSurface(cfg, inv, personaInstructions, deps)
 	s.InstallReceiving()
-	got, err := surface.Capture(ctx, s, inv, deps, cfg.Version)
+	got, err := surface.CaptureWithProbes(ctx, s, inv, deps, cfg.Version, probe)
 	if err != nil {
 		return surface.Captured{}, fmt.Errorf("capture surface: %w", err)
 	}

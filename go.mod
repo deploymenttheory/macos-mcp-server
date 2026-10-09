@@ -5,7 +5,7 @@ go 1.26.2
 require (
 	github.com/deploymenttheory/agentweave-harness v1.0.0
 	github.com/deploymenttheory/go-bindings-macosplatform v0.20.1
-	github.com/deploymenttheory/mcp-server-core v0.2.1
+	github.com/deploymenttheory/mcp-server-core v0.2.2-0.20261009081959-d9e91a0f429d
 	github.com/ebitengine/purego v0.11.1
 	github.com/google/jsonschema-go v0.4.3
 	github.com/modelcontextprotocol/go-sdk v1.8.0
