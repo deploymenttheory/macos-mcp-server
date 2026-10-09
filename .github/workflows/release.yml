@@ -155,9 +155,10 @@ jobs:
           binary="$RUNNER_TEMP/release-binary/macos-mcp-server"
           bundle="dist/macos-mcp-server_${version}_darwin_arm64.mcpb"
           scripts/package-mcpb.sh "$binary" "$version" "$bundle"
-          mcpb sign "$bundle" --cert "$RUNNER_TEMP/mcpb-cert.pem" \
+          python3 scripts/mcpb-signature.py sign "$bundle" --cert "$RUNNER_TEMP/mcpb-cert.pem" \
             --key "$RUNNER_TEMP/mcpb-key.pem"
-          mcpb verify "$bundle"
+          python3 scripts/mcpb-signature.py verify "$bundle" --cert "$RUNNER_TEMP/mcpb-cert.pem"
+          security verify-cert -c "$RUNNER_TEMP/mcpb-cert.pem" -p codeSign
           (cd dist && shasum -a 256 "$(basename "$bundle")") > "$bundle.sha256"
           cosign sign-blob --bundle "$bundle.sigstore.json" "$bundle" --yes
           cosign verify-blob --bundle "$bundle.sigstore.json" \
@@ -178,7 +179,9 @@ jobs:
           spctl -a -vv -t install "$binary"
           test "$("$binary" --version)" = "macos-mcp-server version $version"
           python3 scripts/smoke-stdio.py "$binary" "$version"
-          mcpb verify "dist/macos-mcp-server_${version}_darwin_arm64.mcpb"
+          python3 scripts/mcpb-signature.py verify \
+            "dist/macos-mcp-server_${version}_darwin_arm64.mcpb" \
+            --cert "$RUNNER_TEMP/mcpb-cert.pem"
           .github/scripts/check-cask.sh dist/homebrew/Casks/macos-mcp-server.rb
           test "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)" = true
 

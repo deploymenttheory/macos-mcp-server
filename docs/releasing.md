@@ -20,6 +20,13 @@ The binary `--version`, tarball and `.mcpb` names, MCPB manifest, Homebrew cask
 and MCP Registry entry must all name the same version. The Registry entry must
 carry the released MCPB's SHA-256.
 
+MCPB 2.1.2's signing command leaves trailing signature bytes outside the ZIP
+comment and its verify command calls an unimplemented PKCS#7 verifier. The
+release therefore uses `scripts/mcpb-signature.py` to make the signed bundle a
+valid ZIP and verifies its detached CMS signature with OpenSSL plus the exact
+Developer ID signer. The resulting ZIP passes strict parsing;
+recheck against a fixed MCPB release before removing the workaround.
+
 ## Cut a release
 
 1. Merge feature and fix PRs only after the build, packaging and MCP spec gates

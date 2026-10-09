@@ -17,6 +17,7 @@ on:
       - 'release-please-config.json'
       - 'packaging/**'
       - 'scripts/package-mcpb.sh'
+      - 'scripts/mcpb-signature.py'
       - 'scripts/smoke-stdio.py'
       - '.github/scripts/**'
       - '.github/workflows/release.yml'
@@ -141,4 +142,19 @@ jobs:
           python3 scripts/smoke-stdio.py "$binary" "$version"
           scripts/package-mcpb.sh "$binary" "$version" dist/snapshot.mcpb
           mcpb validate packaging/mcpb/manifest.json
+          openssl req -x509 -newkey rsa:2048 -nodes -subj /CN=mcpb-ci-fixture \
+            -keyout "$RUNNER_TEMP/mcpb-fixture.key" \
+            -out "$RUNNER_TEMP/mcpb-fixture.pem" -days 1 >/dev/null 2>&1
+          python3 scripts/mcpb-signature.py sign dist/snapshot.mcpb \
+            --cert "$RUNNER_TEMP/mcpb-fixture.pem" --key "$RUNNER_TEMP/mcpb-fixture.key"
+          python3 scripts/mcpb-signature.py verify dist/snapshot.mcpb \
+            --cert "$RUNNER_TEMP/mcpb-fixture.pem"
+          cp dist/snapshot.mcpb "$RUNNER_TEMP/tampered.mcpb"
+          python3 -c 'import sys; from pathlib import Path; p = Path(sys.argv[1]); d = bytearray(p.read_bytes()); d[10] ^= 1; p.write_bytes(d)' \
+            "$RUNNER_TEMP/tampered.mcpb"
+          if python3 scripts/mcpb-signature.py verify "$RUNNER_TEMP/tampered.mcpb" \
+              --cert "$RUNNER_TEMP/mcpb-fixture.pem"; then
+            echo 'tampered MCPB passed signature verification' >&2
+            exit 1
+          fi
           .github/scripts/check-cask.sh dist/homebrew/Casks/macos-mcp-server.rb
