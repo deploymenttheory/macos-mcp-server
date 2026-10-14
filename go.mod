@@ -3,7 +3,7 @@ module github.com/deploymenttheory/macos-mcp-server
 go 1.26.2
 
 require (
-	github.com/deploymenttheory/agentweave-harness v1.0.0
+	github.com/deploymenttheory/agentweave-harness v1.0.1
 	github.com/deploymenttheory/go-bindings-macosplatform v0.20.1
 	github.com/deploymenttheory/mcp-server-core v0.2.2
 	github.com/ebitengine/purego v0.11.1
@@ -18,7 +18,7 @@ require (
 require (
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/deploymenttheory/go-bindings-win32 v0.2.1 // indirect
+	github.com/deploymenttheory/go-bindings-win32 v0.5.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
