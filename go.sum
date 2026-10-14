@@ -3,12 +3,12 @@ github.com/cenkalti/backoff/v5 v5.0.3/go.mod h1:rkhZdG3JZukswDf7f0cwqPNk4K0sa+F9
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
-github.com/deploymenttheory/agentweave-harness v1.0.0 h1:dWwiWRAsDwmYUlYuyFNdq0UpCqPtEPKxrM9HDmgWgIA=
-github.com/deploymenttheory/agentweave-harness v1.0.0/go.mod h1:DgW0MwkJ71dNJIfhLkajyRCfGqWnB2KUJ2yTVHiBlKk=
+github.com/deploymenttheory/agentweave-harness v1.0.1 h1:PV86HQ5uhhrPD8GbAW3MZWPXqU+uXmtbgY4AnPeRF+Y=
+github.com/deploymenttheory/agentweave-harness v1.0.1/go.mod h1:S02ZzdZjO4sO5khEbSUolETBu1nrYDGMxmmR/hkbQh4=
 github.com/deploymenttheory/go-bindings-macosplatform v0.20.1 h1:82pe8s9LENzyL2R2C1Ner6VA7+VIgYIC6nGs3j0CGbw=
 github.com/deploymenttheory/go-bindings-macosplatform v0.20.1/go.mod h1:9nrs7NE5Sr4d5KF+zqWXMR2On1OStd7VpJdiIewBTf0=
-github.com/deploymenttheory/go-bindings-win32 v0.2.1 h1:mApZJdaGj636R5lLwSPIIdA+6hKPewtdg8VpePc5VBA=
-github.com/deploymenttheory/go-bindings-win32 v0.2.1/go.mod h1:UCwSCOc2LcmtnGEQFuhyDZ9pFjMdpxvOhR4MsjOji94=
+github.com/deploymenttheory/go-bindings-win32 v0.5.0 h1:B5qu2L+XvQRPe0/ni7Q9PAu3j3it94cyDJjGTeMLG/o=
+github.com/deploymenttheory/go-bindings-win32 v0.5.0/go.mod h1:J3mOfF0N1uFmI8Cm3GPtq1YJYnwAKUkOsmc36GYbm0w=
 github.com/deploymenttheory/mcp-server-core v0.2.2 h1:ndZg5R9kybc1FdYLlxglJbHVn6jYrG1he/RzCU3ePBk=
 github.com/deploymenttheory/mcp-server-core v0.2.2/go.mod h1:O+nVdfrIoo0wmunKookwIqa6yWZ87m0QKnTCOyCEfKE=
 github.com/ebitengine/purego v0.11.1 h1:2zpWRSQNVKN4eKsKO9eM1ILDgWfYMY9GwqRmK6XeQ/0=
